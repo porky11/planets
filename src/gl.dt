@@ -1,0 +1,52 @@
+(module gl)
+
+
+(def glClear    (fn extern-c void ((mask uint))))
+(def glBegin    (fn extern-c void ((mode uint))))
+(def glVertex3f (fn extern-c void ((x float)
+                                   (y float)
+                                   (z float))))
+(def glEnd      (fn extern-c void (void)))
+(def glFlush    (fn extern-c void (void)))
+
+(namespace gl
+  (def bitfield
+    (enum extern uint ((current 0x00000001)
+                       (point 0x00000002)
+                       (line 0x00000004)
+                       (polygon 0x00000008)
+                       (polygon-stripple 0x00000010)
+                       (pixel-mode 0x00000020)
+                       (lightning 0x00000040)
+                       (fog 0x00000080)
+                       (depth-buffer 0x00000100)
+                       (accum-buffer 0x00000200)
+                       (stencil-buffer 0x00000000)
+                       (viewport 0x00000800)
+                       (transform 0x00001000)
+                       (enable 0x00002000)
+                       (color-buffer 0x00004000)
+                       (hint 0x00008000)
+                       (eval 0x00010000)
+                       (list 0x00020000)
+                       (texture 0x00040000)
+                       (scissor 0x00080000)
+                       (all-attribs-bits 0xFFFFFFFF))))
+  (def primitive
+    (enum extern uint (points
+                       lines line-loop line-strip
+                       triangles triangle-strip triangle-fan
+                       quads quad-strip
+                       polygon)))
+
+  (def clear (fn extern void ((mask bitfield))
+    (glClear (cast mask uint))))
+  (def begin (fn extern void ((mode primitive))
+    (glBegin (cast mode uint))))
+  (def vertex (fn extern void ((x float) (y float) (z float))
+    (glVertex3f x y z)))
+  (def end (fn extern-c void (void)
+    (glEnd)))
+  (def flush (fn extern-c void (void)
+    (glFlush)))
+)

@@ -1,0 +1,26 @@
+(import gl)
+(import glut)
+
+
+(using-namespace gl
+(using-namespace glut
+(def main (fn extern-c int ((argc int) (argv (p (p char))))
+  (init (# argc) argv)
+  (init-display-mode (| (mode depth) (| (mode single) (mode rgba))))
+  (init-window-position 100 100)
+  (init-window-size 500 500)
+  (create-window "test")
+  (display-func
+    (fn void (void)
+      (clear (bitfield color-buffer))
+      (begin (primitive line-loop))
+        (vertex -0.8 -0.8 0.0)
+        (vertex  0.8 -0.8 0.0)
+        (vertex  0.8  0.8 0.0)
+        (vertex -0.8  0.8 0.0)
+      (end)
+      (flush)
+      (return)))
+  (main-loop)
+(return 0)))
+))

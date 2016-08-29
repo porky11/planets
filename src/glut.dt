@@ -1,0 +1,68 @@
+(module glut)
+
+(import stdlib)
+(import macros-core)
+(import operator-macros)
+
+;;c-functions
+(def glutInit
+  (fn extern-c void ((argc (p int)) (argv (p (p char))))))
+(def glutInitWindowPosition
+  (fn extern-c void ((x int) (y int))))
+(def glutInitWindowSize
+  (fn extern-c void ((width int) (height int))))
+(def glutCreateWindow
+  (fn extern-c int ((title (p (const char))))))
+(def glutDisplayFunc
+  (fn extern-c void ((callback (p (fn void (void)))))))
+(def glutMainLoop
+  (fn extern-c void (void)))
+(def glutInitDisplayMode
+  (fn extern-c void ((mode uint))))
+
+
+
+(namespace glut
+  (def key
+    (enum extern uint ((F1 0x0001) F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12
+                       (left 0x0064) up right down
+                       page-up page-down home end insert)))
+  (def button
+    (enum extern uint ((left 0x0000) middle right)))
+
+  (def mode
+    (enum extern uint ((rgb 0x0000) 
+                       (rgba 0x0000)
+                       (index 0x0001)
+                       (single 0x0000)
+                       (double 0x0002)
+                       (accum 0x0004)
+                       (alpha 0x0008)
+                       (depth 0x0010)
+                       (stencil 0x0020)
+                       (multisample 0x0080)
+                       (stereo 0x0100)
+                       (luminance 0x0200))))
+  (def init
+    (fn extern void ((argc (p int)) (argv (p (p char))))
+      (glutInit argc argv)))
+  (def init-window-position
+    (fn extern void ((x int) (y int))
+      (glutInitWindowPosition x y)))
+  (def init-window-size
+    (fn extern void ((width int) (height int))
+      (glutInitWindowSize width height)))
+  (def create-window
+    (fn extern int ((title (p (const char))))
+      (glutCreateWindow title)))
+  (def display-func
+    (fn extern-c void ((callback (p (fn void (void)))))
+      (glutDisplayFunc callback)))
+  (def main-loop
+    (fn extern void (void)
+      (glutMainLoop)))
+  (def init-display-mode (fn extern void ((mode mode))
+    (glutInitDisplayMode (cast mode uint))))
+)
+
+
