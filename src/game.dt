@@ -1,8 +1,22 @@
 (import gl)
 (import glut)
+(import cstdio)
+(import cmath)
 
 
-(using-namespace gl
+(def circle (var intern (array-of 16 (array-of 2 float))))
+(def pi (macro intern (void)
+  (q 3.14159265358979323846)))
+
+(using-namespace std
+(def init-circle (fn intern void ((circle (p (array-of 16 (array-of 2 float)))))
+  (let ((i int 0))
+    (mfor (< i 16)
+      (setf ($ circle i) (array-of 2 float (array (cosf (*' (/' (pi) 16) i)) (sinf (*' (/' (pi) 16) i)))))
+      (incv i))
+      (return))))
+)
+
 (using-namespace glut
 (def main (fn extern-c int ((argc int) (argv (p (p char))))
   (init (# argc) argv)
@@ -10,17 +24,28 @@
   (init-window-position 100 100)
   (init-window-size 500 500)
   (create-window "test")
-  (display-func
-    (fn void (void)
+  (display-func (fn void (void)
+    (using-namespace gl
       (clear (bitfield color-buffer))
-      (begin (primitive line-loop))
-        (vertex -0.8 -0.8 0.0)
-        (vertex  0.8 -0.8 0.0)
-        (vertex  0.8  0.8 0.0)
-        (vertex -0.8  0.8 0.0)
-      (end)
-      (flush)
-      (return)))
+      (let ((vertices \ 
+        (array-of 4 (array-of 2 float)
+          (array
+            (array-of 2 float
+              (array -0.8 -0.8))
+            (array-of 2 float
+              (array 0.8 -0.7))
+            (array-of 2 float
+              (array 0.8  0.8))
+            (array-of 2 float
+              (array -0.8  0.8))))))
+        (enable-client-state (array vertex))
+        (vertex-pointer 2 float 0 vertices)
+        (draw-arrays line-loop 0 4)
+        (disable-client-state)
+        (end)
+        (flush)
+        (return)))))
   (main-loop)
-(return 0)))
-))
+  (return 0)))
+)
+

@@ -1,5 +1,6 @@
 (module gl)
 
+(import macros)
 
 (def glClear    (fn extern-c void ((mask uint))))
 (def glBegin    (fn extern-c void ((mode uint))))
@@ -9,6 +10,11 @@
 (def glEnd      (fn extern-c void (void)))
 (def glFlush    (fn extern-c void (void)))
 
+(def glEnableClientState (fn extern-c void ((array uint))))
+(def glDisableClientState (fn extern-c void (void)))
+(def glDrawArrays (fn extern-c void ((mode uint) (first int) (count int))))
+(def glDrawElements (fn extern-c void ((mode uint) (first int) (count int) (indices (p void)))))
+(def glVertexPointer (fn extern-c void ((size int) (type uint) (stride int) (ptr (const (p void))))))
 (namespace gl
   (def bitfield
     (enum extern uint ((current 0x00000001)
@@ -32,21 +38,48 @@
                        (texture 0x00040000)
                        (scissor 0x00080000)
                        (all-attribs-bits 0xFFFFFFFF))))
-  (def primitive
-    (enum extern uint (points
+  (def mode
+    (enum intern uint (points
                        lines line-loop line-strip
                        triangles triangle-strip triangle-fan
                        quads quad-strip
                        polygon)))
+  (def type
+    (enum intern uint ((byte 0x1400) ubyte
+                       short ushort
+                       int uint
+                       float
+                       2-bytes 3-bytes 4-bytes
+                       double)))
+  (def array
+    (enum extern uint ((vertex 0x8074) normal color index texture-coord edge-flag)))
 
   (def clear (fn extern void ((mask bitfield))
     (glClear (cast mask uint))))
-  (def begin (fn extern void ((mode primitive))
+  (def begin (fn extern void ((mode mode))
     (glBegin (cast mode uint))))
   (def vertex (fn extern void ((x float) (y float) (z float))
     (glVertex3f x y z)))
-  (def end (fn extern-c void (void)
+  (def end (fn extern void (void)
     (glEnd)))
-  (def flush (fn extern-c void (void)
+  (def enable-client-state (fn extern void ((array array))
+    (glEnableClientState (cast array uint))))
+  (def disable-client-state (fn extern void (void)
+    (glDisableClientState)))
+  (using-namespace std.macros
+  (def draw-arrays (macro extern (mode (first int) (count int))
+    (qq glDrawArrays (cast (mode (uq mode)) uint) (uq first) (uq count))))
+  (def vertex-pointer (macro extern ((size int) type (stride int) ptr)
+    (qq glVertexPointer (uq size) (cast (type (uq type)) uint) (uq stride) (cast (uq ptr) (p void)))))
+  )
+   #|
+  (using-namespace std.macros
+  (def with-client-state (macro extern (state ...)
+    (qq do (enable-client-state (uq state))
+           (uql (get-varargs-list (- (argcount mc) 1)))
+           (disable-client-state)))))
+           |#
+
+  (def flush (fn extern void (void)
     (glFlush)))
 )
