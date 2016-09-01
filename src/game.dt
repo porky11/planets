@@ -1,0 +1,157 @@
+(import gl)
+(import glut)
+(import spatial)
+
+(import cstdio)
+(import math)
+(import array)
+  
+  (def Planet (struct intern
+    ((pos (array-of 2 float))
+     (vel (array-of 2 float)))))
+
+#|
+
+
+
+
+
+  (implement Type Planet)
+  (instantiate UniquePtr Planet)
+  (instantiate Vector (UniquePtr Planet))
+
+)
+
+(def world (var intern (Vector (UniquePtr Planet))))
+
+
+
+(def pos (fn intern (p (array-of 2 int)) ((planet (p Planet)))
+  (:@ planet pos)))
+
+(def vel (fn intern (p (array-of 2 int)) ((planet (p Planet)))
+  (:@ planet pos)))
+
+|#
+
+
+
+
+(def world (var intern (p Planet)))
+
+
+(def pi (macro intern (void)
+  (q 3.14159265358979323846)))
+
+
+(using-namespace std
+(def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
+  (let ((i int 0))
+    (for true (< i 32) (incv i)
+      (setf ($ ($ (@ circle) i) 0) (cosf (*' (/' (pi) 16) i)))
+      (setf ($ ($ (@ circle) i) 1) (sinf (*' (/' (pi) 16) i)))))
+      (return))))
+
+
+(def circle (var intern (array-of 32 (array-of 2 float))))
+
+#|
+(def circle (var intern (array-of 4 (array-of 2 float))
+              (array
+                (array -1.0 0.0)
+                (array 0.0 1.0)
+                (array 1.0 0.0)
+                (array 0.0 -1.0))))
+
+|#
+
+
+(using-namespace gl
+(def program (var intern Program))
+
+(def init-program (fn intern void (void)
+  (setv program (create-program))
+  (let ((vertex-shader \ (create-shader vertex))
+        (fragment-shader \ (create-shader fragment)))
+    (shader-source vertex-shader "
+      uniform vec2 pos;
+      uniform float scale;
+      varying vec2 p;
+      varying vec2 c;
+      void main(void) {
+        c=gl_Vertex.xy;
+        p=c*scale+pos;
+        gl_Position = vec4(p,0,1);
+      }
+    ")
+    (compile-shader vertex-shader)
+    (printf "v%i\n" (get-shader-iv vertex-shader compile-status))
+    (shader-source fragment-shader "
+varying vec2 p;
+varying vec2 c;
+const vec2 lpos = vec2(0,0);
+void main(void) {
+  vec2 ldir=normalize(lpos-p);
+  float cn = max(min(1,dot(ldir,c)),0);
+  gl_FragColor = vec4(
+    0,
+    0,
+    cn,
+    1
+  );
+}
+")
+    (compile-shader fragment-shader)
+    (printf "f%i\n" (get-shader-iv fragment-shader compile-status))
+    (mfor s (vertex-shader fragment-shader)
+      (attach-shader program s))
+    (link-program program))))
+)
+
+(def x (var intern float 0.0))
+(def y (var intern float 0.0))
+
+(using-namespace std.macros
+  (def incf (macro intern (val res)
+    (let ((pos \ (make-gensym-var-node mc)))
+      (qq let (((uq pos) \ (uq val)))
+        (setf (uq pos) (+ (@ (uq pos)) (uq res))))))))
+
+
+(using-namespace glut
+(using-namespace gl
+(def main (fn extern-c int ((argc int) (argv (p (p char))))
+
+  (init (# argc) argv)
+  (init-display-mode (| (mode depth) (| (mode single) (mode rgba))))
+  (init-window-position 100 100)
+  (init-window-size 500 500)
+  (create-window "test")
+
+  (init-program)
+  (init-circle (# circle))
+  
+  (setv world (malloc' 1 Planet))
+  (idle-func (void)
+    (incf ($ (:@ world pos) 0) 0.0001)
+    (incf ($ (:@ world pos) 1) 0.00005)
+    (glutPostRedisplay)
+    (return))
+
+  (display-func (void)
+    (using-namespace gl
+      (clear color)
+      (enable-client-state vertex)
+      (use-program program)
+      (uniform (get-uniform-location program "pos") (:@ world pos))
+      (uniform (get-uniform-location program "scale") 0.1)
+      (vertex-pointer 2 float 0 circle)
+      (draw-arrays triangle-fan 0 32)
+      (disable-client-state)
+      (end)
+      (flush)
+      (return)))
+  (main-loop)
+  (return 0)))
+))
+
