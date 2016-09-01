@@ -4,13 +4,13 @@ bindir=$(prefix)/bin
 
 all: game
 
-game: libglut.dtm libgl.dtm libspatial.dtm src/game.dt
+game: libglut.dtm libgl.dtm libspatial.dtm libutil.dtm src/game.dt
 	dalec src/game.dt -lGL -lglut -o game
 
 libgl.dtm: src/gl.dt
 	dalec -c src/gl.dt
 
-libglut.dtm: src/glut.dt libutil.dtm
+libglut.dtm: src/glut.dt
 	dalec -c src/glut.dt
 
 libspatial.dtm: src/spatial.dt

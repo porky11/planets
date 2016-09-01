@@ -1,3 +1,10 @@
 (module util)
 
+(import macros)
+
+(using-namespace std.macros
+  (def incf (macro extern (val res)
+    (let ((pos \ (make-gensym-var-node mc)))
+      (qq let (((uq pos) \ (uq val)))
+        (setf (uq pos) (+ (@ (uq pos)) (uq res))))))))
 
