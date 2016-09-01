@@ -9,13 +9,13 @@
 (import unique-ptr)
 
 
+#|
 (using-namespace std.concepts
   (instantiate Array int 2)
   (def Planet (struct intern
     ((pos (Array int 2))
      (vel (Array int 2))))))
 
-#|
 
 
 
@@ -32,7 +32,6 @@
 
 
 
-|#
 (def pos (fn intern (p (Array int 2)) ((planet (ref Planet)))
   (:@ planet pos)))
 
@@ -40,13 +39,13 @@
   (:@ planet pos)))
 
 (def world (var intern (p Planet)))
+|#
 
 
 (def pi (macro intern (void)
   (q 3.14159265358979323846)))
 
 
-#|
 (using-namespace std
 (def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
   (let ((i int 0))
@@ -57,7 +56,7 @@
 
 
 (def circle (var intern (array-of 32 (array-of 2 float))))
-|#
+#|
 
 (def circle (var intern (array-of 4 (array-of 2 float))
               (array
@@ -65,6 +64,7 @@
                 (array 0.0 1.0)
                 (array 1.0 0.0)
                 (array 0.0 -1.0))))
+|#
 
 
 
@@ -124,12 +124,11 @@ void main(void) {
   (create-window "test")
 
   (init-program)
-  ;(init-circle (# circle))
+  (init-circle (# circle))
   
-  (setv world (malloc' 1 Planet))
   (idle-func (void)
-    (incf (@$ (pos (@ world)) 0) 0.0001)
-    (incf (@$ (pos (@ world)) 1) 0.00005)
+    (setv x (+ x 0.0001))
+    (setv y (+ y 0.00005))
     (glutPostRedisplay)
     (return))
 
