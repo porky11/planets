@@ -1,6 +1,95 @@
 (module gl)
 
+;;;constants
+
+(namespace gl
+
+  (def attrib-mask
+    (enum intern uint ((current 0x1)
+                       (point 0x2)
+                       (line 0x4)
+                       (polygon 0x8)
+                       (polygon-stripple 0x10)
+                       (pixel-mode 0x20)
+                       (lightning 0x40)
+                       (fog 0x80)
+                       (depth-buffer 0x100)
+                       (accum-buffer 0x200)
+                       (stencil-buffer 0x400)
+                       (viewport 0x800)
+                       (transform 0x1000)
+                       (enable 0x2000)
+                       (color-buffer 0x4000)
+                       (hint 0x8000)
+                       (eval 0x10000)
+                       (list 0x20000)
+                       (texture 0x40000)
+                       (scissor 0x80000)
+                       (multisample 0x20000000)
+                       (all-attrib 0xFFFFFFFF))))
+                         
+    
+  (def clear-buffer-mask
+    (enum intern uint
+      ((depth 0x100)
+       (accum 0x200)
+       (stencil 0x400)
+       (color 0x4000)
+       (coverage 0x8000))))
+
+  (def client-attrib-mask
+    (enum intern uint
+      ((pixel-store 0x1)
+       (vertex-array 0x2)
+       (all-attrib 0xFFFFFFFF))))
+
+  (def context-flag-mask
+    (enum intern uint
+      ((forward-compatible 0x1)
+       (debug 0x2)
+       (robust-access 0x4)
+       (no-error 0x8))))
+
+  (def pname
+    (enum intern uint
+      ((shader-type 0x8B4F)
+       (delete-status 0x8B80)
+       (compile-status 0x8B81)
+       (info-log-length 0x8B84)
+       (shader-source-length 0x8B88))))
+
+  (def context-profile-mask
+    (enum intern uint
+      ((core 0x1)
+       (compability 0x2))))
+
+
+  (def shader-type
+    (enum intern uint
+      ((fragment 0x8B30)
+       vertex)))
+
+  (def primitive
+    (enum intern uint (points
+                       lines line-loop line-strip
+                       triangles triangle-strip triangle-fan
+                       quads quad-strip
+                       polygon)))
+
+  (def type
+    (enum intern uint ((byte 0x1400) ubyte
+                       short ushort
+                       int uint
+                       float
+                       2-bytes 3-bytes 4-bytes
+                       double)))
+  (def array
+    (enum intern uint ((vertex 0x8074) normal color index texture-coord edge-flag)))
+)
+
 (import macros)
+
+;;cfun
 
 (def glClear    (fn extern-c void ((mask uint))))
 (def glBegin    (fn extern-c void ((mode uint))))
@@ -15,60 +104,118 @@
 (def glDrawArrays (fn extern-c void ((mode uint) (first int) (count int))))
 (def glDrawElements (fn extern-c void ((mode uint) (first int) (count int) (indices (p void)))))
 (def glVertexPointer (fn extern-c void ((size int) (type uint) (stride int) (ptr (const (p void))))))
-(namespace gl
-  (def bitfield
-    (enum extern uint ((current 0x00000001)
-                       (point 0x00000002)
-                       (line 0x00000004)
-                       (polygon 0x00000008)
-                       (polygon-stripple 0x00000010)
-                       (pixel-mode 0x00000020)
-                       (lightning 0x00000040)
-                       (fog 0x00000080)
-                       (depth-buffer 0x00000100)
-                       (accum-buffer 0x00000200)
-                       (stencil-buffer 0x00000000)
-                       (viewport 0x00000800)
-                       (transform 0x00001000)
-                       (enable 0x00002000)
-                       (color-buffer 0x00004000)
-                       (hint 0x00008000)
-                       (eval 0x00010000)
-                       (list 0x00020000)
-                       (texture 0x00040000)
-                       (scissor 0x00080000)
-                       (all-attribs-bits 0xFFFFFFFF))))
-  (def mode
-    (enum intern uint (points
-                       lines line-loop line-strip
-                       triangles triangle-strip triangle-fan
-                       quads quad-strip
-                       polygon)))
-  (def type
-    (enum intern uint ((byte 0x1400) ubyte
-                       short ushort
-                       int uint
-                       float
-                       2-bytes 3-bytes 4-bytes
-                       double)))
-  (def array
-    (enum extern uint ((vertex 0x8074) normal color index texture-coord edge-flag)))
 
-  (def clear (fn extern void ((mask bitfield))
-    (glClear (cast mask uint))))
-  (def begin (fn extern void ((mode mode))
+(def glCreateShader (fn extern-c uint ((shader-type uint))))
+(def glGetShaderSource (fn extern-c void ((shader uint) (buf-size int) (lenght (p int)) (source (p char)))))
+(def glShaderSource (fn extern-c void ((shader uint) (count int) (source (p (p (const char)))) (lenght (p int)))))
+(def glCompileShader (fn extern-c void ((shader uint))))
+(def glGetShaderiv (fn extern-c void ((shader uint) (pname uint) (params (p int)))))
+
+(def glCreateProgram (fn extern-c uint (void)))
+(def glAttachShader (fn extern-c void ((program uint) (shader uint))))
+(def glLinkProgram (fn extern-c void ((program uint))))
+(def glUseProgram (fn extern-c void ((program uint))))
+
+(def glGetUniformLocation (fn extern-c int ((program uint) (name (p (const char))))))
+
+(def glUniform1f (fn extern-c void ((location int) (v0 float))))
+(def glUniform2f (fn extern-c void ((location int) (v0 float) (v1 float))))
+(def glUniform3f (fn extern-c void ((location int) (v0 float) (v1 float) (v2 float))))
+(def glUniform4f (fn extern-c void ((location int) (v0 float) (v1 float) (v2 float) (v3 float))))
+(def glUniform1i (fn extern-c void ((location int) (v0 int))))
+(def glUniform2i (fn extern-c void ((location int) (v0 int) (v1 int))))
+(def glUniform3i (fn extern-c void ((location int) (v0 int) (v1 int) (v2 int))))
+(def glUniform4i (fn extern-c void ((location int) (v0 int) (v1 int) (v2 int) (v3 int))))
+(def glUniform1ui (fn extern-c void ((location int) (v0 uint))))
+(def glUniform2ui (fn extern-c void ((location int) (v0 uint) (v1 uint))))
+(def glUniform3ui (fn extern-c void ((location int) (v0 uint) (v1 uint) (v2 uint))))
+(def glUniform4ui (fn extern-c void ((location int) (v0 uint) (v1 uint) (v2 uint) (v3 uint))))
+
+
+;;;types
+(namespace gl
+  (def Shader (struct extern ((value uint))))
+  (def Program (struct extern ((value uint))))
+  (def Location (struct extern ((value int))))
+)
+
+(namespace gl
+(using-namespace std.macros
+
+  (def uniform (fn extern void ((location Location) (v0 float))
+    (glUniform1f (@: location value) v0)))
+  (def uniform (fn extern void ((location Location) (v0 float) (v1 float))
+    (glUniform2f (@: location value) v0 v1)))
+  (def uniform (fn extern void ((location Location) (v0 float) (v1 float) (v2 float))
+    (glUniform3f (@: location value) v0 v1 v2)))
+  (def uniform (fn extern void ((location Location) (v0 float) (v1 float) (v2 float) (v3 float))
+    (glUniform4f (@: location value) v0 v1 v2 v3)))
+
+  (def uniform (fn extern void ((location Location) (v0 int))
+    (glUniform1i (@: location value) v0)))
+  (def uniform (fn extern void ((location Location) (v0 int) (v1 int))
+    (glUniform2i (@: location value) v0 v1)))
+  (def uniform (fn extern void ((location Location) (v0 int) (v1 int) (v2 int))
+    (glUniform3i (@: location value) v0 v1 v2)))
+  (def uniform (fn extern void ((location Location) (v0 int) (v1 int) (v2 int) (v3 int))
+    (glUniform4i (@: location value) v0 v1 v2 v3)))
+
+  (def uniform (fn extern void ((location Location) (v0 uint))
+    (glUniform1ui (@: location value) v0)))
+  (def uniform (fn extern void ((location Location) (v0 uint) (v1 uint))
+    (glUniform2ui (@: location value) v0 v1)))
+  (def uniform (fn extern void ((location Location) (v0 uint) (v1 uint) (v2 uint))
+    (glUniform3ui (@: location value) v0 v1 v2)))
+  (def uniform (fn extern void ((location Location) (v0 uint) (v1 uint) (v2 uint) (v3 uint))
+    (glUniform4ui (@: location value) v0 v1 v2 v3)))
+
+  (def get-uniform-location (fn extern Location ((program Program) (name (p (const char))))
+    (Location ((value (glGetUniformLocation (@: program value) name))))))
+
+
+  (def create-shader (macro extern (shader-type)
+    (qq Shader ((value (glCreateShader (cast (shader-type (uq shader-type)) uint)))))))
+  (def shader-source (fn extern void ((shader Shader) (str (p (const char))))
+    (glShaderSource (@: shader value) 1 (# str) (nullptr int))))
+  (def compile-shader (fn extern void ((shader Shader))
+    (glCompileShader (@: shader value))))
+
+  (def create-program (fn extern Program (void)
+    (Program ((value (glCreateProgram))))))
+  (def attach-shader (fn extern void ((program Program) (shader Shader))
+    (glAttachShader (@: program value) (@: shader value))))
+    
+  (def get-shader-iv (macro extern ((shader Shader) pname)
+    (let ((name \ (make-gensym-var-node mc)))
+      (qq do (def (uq name) (var auto int 0))
+             (glGetShaderiv (@: (uq shader) value) (cast (pname (uq pname)) uint) (# (uq name)))
+             (move (uq name))))))
+    #|
+  (def attach-shader (macro extern ((program Program) (shader Shader) ...)
+    (qq do (attach-shader (uq program) (uq shader))
+           (attach-shaders (uq program) (uql (get-varargs-list (- (arg-count mc) 2)))))))
+           |#
+  (def link-program (fn extern void ((program Program))
+    (glLinkProgram (@: program value))))
+  (def use-program (fn extern void ((program Program))
+    (glUseProgram (@: program value))))
+
+
+  (def clear (macro extern (mask)
+    (qq glClear (cast (clear-buffer-mask (uq mask)) uint))))
+  (def begin (fn extern void ((mode primitive))
     (glBegin (cast mode uint))))
   (def vertex (fn extern void ((x float) (y float) (z float))
     (glVertex3f x y z)))
   (def end (fn extern void (void)
     (glEnd)))
-  (def enable-client-state (fn extern void ((array array))
-    (glEnableClientState (cast array uint))))
+  (def enable-client-state (macro extern (array)
+    (qq glEnableClientState (cast (array (uq array)) uint))))
   (def disable-client-state (fn extern void (void)
     (glDisableClientState)))
   (using-namespace std.macros
   (def draw-arrays (macro extern (mode (first int) (count int))
-    (qq glDrawArrays (cast (mode (uq mode)) uint) (uq first) (uq count))))
+    (qq glDrawArrays (cast (primitive (uq mode)) uint) (uq first) (uq count))))
   (def vertex-pointer (macro extern ((size int) type (stride int) ptr)
     (qq glVertexPointer (uq size) (cast (type (uq type)) uint) (uq stride) (cast (uq ptr) (p void)))))
   )
@@ -82,4 +229,4 @@
 
   (def flush (fn extern void (void)
     (glFlush)))
-)
+))

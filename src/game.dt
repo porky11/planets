@@ -1,51 +1,112 @@
 (import gl)
 (import glut)
+(import spatial)
+
 (import cstdio)
-(import cmath)
+(import math)
+(import array)
+
+(using-namespace std.concepts
+  (instantiate Array int 2))
+
+(def Planet (struct intern
+  ((pos (Array int 2))
+   (vel (Array int 2)))))
+
+(def world (var intern (p Planet)))
+
+(def pos (fn intern (p (Array int 2)) ((planet (ref Planet)))
+  (:@ planet pos)))
+
+(def vel (fn intern (p (Array int 2)) ((planet (ref Planet)))
+  (:@ planet pos)))
 
 
-(def circle (var intern (array-of 16 (array-of 2 float))))
+
+(def circle (var intern (array-of 4 (array-of 2 float))
+              (array
+                (array -1.0 0.0)
+                (array 0.0 1.0)
+                (array 1.0 0.0)
+                (array 0.0 -1.0))))
+
+
+
+#|
+vec2 
+
 (def pi (macro intern (void)
   (q 3.14159265358979323846)))
-
 (using-namespace std
 (def init-circle (fn intern void ((circle (p (array-of 16 (array-of 2 float)))))
   (let ((i int 0))
     (mfor (< i 16)
-      (setf ($ circle i) (array-of 2 float (array (cosf (*' (/' (pi) 16) i)) (sinf (*' (/' (pi) 16) i)))))
-      (incv i))
+      (setf ($ circle i) (array-of 2 float (array (cos (*' (/' (pi) 16) i)) (sin (*' (/' (pi) 16) i)))))
+      (incf (# i)))
       (return))))
 )
+|#
 
+
+(using-namespace gl
+(def program (var intern Program))
+
+(def init-program (fn intern void (void)
+  (setv program (create-program))
+  (let ((vertex-shader \ (create-shader vertex))
+        (fragment-shader \ (create-shader fragment)))
+    (shader-source vertex-shader "
+      uniform float pos;
+      void main() {
+        gl_Position = gl_Vertex*scale;
+      }
+    ")
+    (compile-shader vertex-shader)
+    (printf "v%i\n" (get-shader-iv vertex-shader compile-status))
+    (shader-source fragment-shader "
+      void main() {
+        gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+      }
+    ")
+    (compile-shader fragment-shader)
+    (printf "f%i\n" (get-shader-iv fragment-shader compile-status))
+    (mfor s (vertex-shader fragment-shader)
+      (attach-shader program s))
+    (link-program program))))
+)
+
+(using-namespace gl
 (using-namespace glut
 (def main (fn extern-c int ((argc int) (argv (p (p char))))
+
+
   (init (# argc) argv)
   (init-display-mode (| (mode depth) (| (mode single) (mode rgba))))
   (init-window-position 100 100)
   (init-window-size 500 500)
   (create-window "test")
-  (display-func (fn void (void)
-    (using-namespace gl
-      (clear (bitfield color-buffer))
-      (let ((vertices \ 
-        (array-of 4 (array-of 2 float)
-          (array
-            (array-of 2 float
-              (array -0.8 -0.8))
-            (array-of 2 float
-              (array 0.8 -0.7))
-            (array-of 2 float
-              (array 0.8  0.8))
-            (array-of 2 float
-              (array -0.8  0.8))))))
-        (enable-client-state (array vertex))
-        (vertex-pointer 2 float 0 vertices)
-        (draw-arrays line-loop 0 4)
-        (disable-client-state)
-        (end)
-        (flush)
-        (return)))))
+
+  (init-program)
+  (def x (var intern float 0.0))
+  (def y (var intern float 0.0))
+  
+  (idle-func (void)
+    (setv x (+ x 0.001))
+    (setv y (+ y 0.0005))
+    (return))
+
+  (display-func (void)
+      (clear color)
+      (enable-client-state vertex)
+      (use-program program)
+      (uniform (get-uniform-location program "pos") x y)
+      (vertex-pointer 2 float 0 circle)
+      (draw-arrays quads 0 4)
+      (disable-client-state)
+      (end)
+      (flush)
+      (return))
   (main-loop)
   (return 0)))
-)
+))
 
