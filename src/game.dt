@@ -23,9 +23,9 @@
 |#
 
 (using-namespace std.macros
-(def pos (macro intern (planet)
+(def pos (macro intern ((planet Planet))
   (qq : (uq planet) pos)))
-(def vel (macro intern (planet)
+(def vel (macro intern ((planet Planet))
   (qq : (uq planet) vel)))
 )
 
