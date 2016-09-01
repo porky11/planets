@@ -84,7 +84,7 @@
     (shader-source fragment-shader "
 varying vec2 p;
 varying vec2 c;
-const vec2 lpos = vec2(0,0);
+uniform vec2 lpos;
 void main(void) {
   vec2 ldir=normalize(lpos-p);
   float cn = max(min(1,dot(ldir,c)),0);
@@ -127,8 +127,8 @@ void main(void) {
     (setf (pos (@ (p+ world i))) (array 0.0 0.0))
     (setf (vel (@ (p+ world i)))
           (array
-            (/ (cos (*' (/ (pi) 4.0) i)) 10000.0)
-            (/ (sin (*' (/ (pi) 4.0) i)) 10000.0))))
+            (/ (cos (*' (/ (pi) 4.0) i)) 50000.0)
+            (/ (sin (*' (/ (pi) 4.0) i)) 50000.0))))
   )
   (idle-func (void)
     (mfor i (0 1 2 3 4 5 6 7)
@@ -139,18 +139,22 @@ void main(void) {
 
   (display-func (void)
     (using-namespace gl
+    (using-namespace std
       (clear color)
       (enable-client-state vertex)
       (use-program program)
+      (incf (# x) 0.002)
+      (def y (var auto \ (/ (sqrt x) 10.0)))
+      (uniform (get-uniform-location program "lpos") (* y (sin x)) (* y (cos x)))
+      (uniform (get-uniform-location program "scale") 0.1)
       (mfor i (0 1 2 3 4 5 6 7)
         (uniform (get-uniform-location program "pos") (:@ (p+ world i) pos))
-        (uniform (get-uniform-location program "scale") 0.1)
         (vertex-pointer 2 float 0 circle)
         (draw-arrays triangle-fan 0 32))
       (disable-client-state)
       (end)
       (flush)
-      (return)))
+      (return))))
   (main-loop)
   (free' world)
   (return 0)))
