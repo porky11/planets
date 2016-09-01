@@ -3,7 +3,6 @@
 (import stdlib)
 (import macros-core)
 (import macros)
-(import util)
 
 
 ;;c-functions
