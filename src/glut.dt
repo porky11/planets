@@ -23,7 +23,8 @@
   (fn extern-c void (void)))
 (def glutInitDisplayMode
   (fn extern-c void ((mode uint))))
-
+(def glutPostRedisplay
+  (fn extern-c void (void)))
 
 (namespace glut
   (def key

@@ -5,23 +5,59 @@
 (import cstdio)
 (import math)
 (import array)
+(import vector)
+(import unique-ptr)
+
 
 (using-namespace std.concepts
-  (instantiate Array int 2))
+  (instantiate Array int 2)
+  (def Planet (struct intern
+    ((pos (Array int 2))
+     (vel (Array int 2))))))
 
-(def Planet (struct intern
-  ((pos (Array int 2))
-   (vel (Array int 2)))))
+#|
 
-(def world (var intern (p Planet)))
 
+
+
+
+  (implement Type Planet)
+  (instantiate UniquePtr Planet)
+  (instantiate Vector (UniquePtr Planet))
+
+)
+
+(def world (var intern (Vector (UniquePtr Planet))))
+
+
+
+
+|#
 (def pos (fn intern (p (Array int 2)) ((planet (ref Planet)))
   (:@ planet pos)))
 
 (def vel (fn intern (p (Array int 2)) ((planet (ref Planet)))
   (:@ planet pos)))
 
+(def world (var intern (p Planet)))
 
+
+(def pi (macro intern (void)
+  (q 3.14159265358979323846)))
+
+
+#|
+(using-namespace std
+(def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
+  (let ((i int 0))
+    (for true (< i 32) (incv i)
+      (setf ($ ($ (@ circle) i) 0) (cosf (*' (/' (pi) 16) i)))
+      (setf ($ ($ (@ circle) i) 1) (sinf (*' (/' (pi) 16) i)))))
+      (return))))
+
+
+(def circle (var intern (array-of 32 (array-of 2 float))))
+|#
 
 (def circle (var intern (array-of 4 (array-of 2 float))
               (array
@@ -32,22 +68,6 @@
 
 
 
-#|
-vec2 
-
-(def pi (macro intern (void)
-  (q 3.14159265358979323846)))
-(using-namespace std
-(def init-circle (fn intern void ((circle (p (array-of 16 (array-of 2 float)))))
-  (let ((i int 0))
-    (mfor (< i 16)
-      (setf ($ circle i) (array-of 2 float (array (cos (*' (/' (pi) 16) i)) (sin (*' (/' (pi) 16) i)))))
-      (incf (# i)))
-      (return))))
-)
-|#
-
-
 (using-namespace gl
 (def program (var intern Program))
 
@@ -56,18 +76,33 @@ vec2
   (let ((vertex-shader \ (create-shader vertex))
         (fragment-shader \ (create-shader fragment)))
     (shader-source vertex-shader "
-      uniform float pos;
-      void main() {
-        gl_Position = gl_Vertex*scale;
+      uniform vec2 pos;
+      uniform float scale;
+      varying vec2 p;
+      varying vec2 c;
+      void main(void) {
+        c=gl_Vertex.xy;
+        p=c*scale+pos;
+        gl_Position = vec4(p,0,1);
       }
     ")
     (compile-shader vertex-shader)
     (printf "v%i\n" (get-shader-iv vertex-shader compile-status))
     (shader-source fragment-shader "
-      void main() {
-        gl_FragColor = vec4(1.0,0.0,0.0,1.0);
-      }
-    ")
+varying vec2 p;
+varying vec2 c;
+const vec2 lpos = vec2(0,0);
+void main(void) {
+  vec2 ldir=normalize(lpos-p);
+  float cn = max(min(1,dot(ldir,c)),0);
+  gl_FragColor = vec4(
+    0,
+    0,
+    cn,
+    1
+  );
+}
+")
     (compile-shader fragment-shader)
     (printf "f%i\n" (get-shader-iv fragment-shader compile-status))
     (mfor s (vertex-shader fragment-shader)
@@ -75,10 +110,12 @@ vec2
     (link-program program))))
 )
 
-(using-namespace gl
-(using-namespace glut
-(def main (fn extern-c int ((argc int) (argv (p (p char))))
+(def x (var intern float 0.0))
+(def y (var intern float 0.0))
 
+(using-namespace glut
+(using-namespace gl
+(def main (fn extern-c int ((argc int) (argv (p (p char))))
 
   (init (# argc) argv)
   (init-display-mode (| (mode depth) (| (mode single) (mode rgba))))
@@ -87,25 +124,28 @@ vec2
   (create-window "test")
 
   (init-program)
-  (def x (var intern float 0.0))
-  (def y (var intern float 0.0))
+  ;(init-circle (# circle))
   
+  (setv world (malloc' 1 Planet))
   (idle-func (void)
-    (setv x (+ x 0.001))
-    (setv y (+ y 0.0005))
+    (incf (@$ (pos (@ world)) 0) 0.0001)
+    (incf (@$ (pos (@ world)) 1) 0.00005)
+    (glutPostRedisplay)
     (return))
 
   (display-func (void)
+    (using-namespace gl
       (clear color)
       (enable-client-state vertex)
       (use-program program)
       (uniform (get-uniform-location program "pos") x y)
+      (uniform (get-uniform-location program "scale") 0.1)
       (vertex-pointer 2 float 0 circle)
-      (draw-arrays quads 0 4)
+      (draw-arrays triangle-fan 0 32)
       (disable-client-state)
       (end)
       (flush)
-      (return))
+      (return)))
   (main-loop)
   (return 0)))
 ))

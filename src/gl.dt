@@ -1,6 +1,9 @@
 (module gl)
 
+
+
 ;;;constants
+
 
 (namespace gl
 
@@ -131,6 +134,20 @@
 (def glUniform3ui (fn extern-c void ((location int) (v0 uint) (v1 uint) (v2 uint))))
 (def glUniform4ui (fn extern-c void ((location int) (v0 uint) (v1 uint) (v2 uint) (v3 uint))))
 
+(def glUniform1fv (fn extern-c void ((location int) (count uint) (value (const (p float))))))
+(def glUniform2fv (fn extern-c void ((location int) (count uint) (value (const (p float))))))
+(def glUniform3fv (fn extern-c void ((location int) (count uint) (value (const (p float))))))
+(def glUniform4fv (fn extern-c void ((location int) (count uint) (value (const (p float))))))
+(def glUniform1iv (fn extern-c void ((location int) (count uint) (value (const (p int))))))
+(def glUniform2iv (fn extern-c void ((location int) (count uint) (value (const (p int))))))
+(def glUniform3iv (fn extern-c void ((location int) (count uint) (value (const (p int))))))
+(def glUniform4iv (fn extern-c void ((location int) (count uint) (value (const (p int))))))
+(def glUniform1uiv (fn extern-c void ((location int) (count uint) (value (const (p uint))))))
+(def glUniform2uiv (fn extern-c void ((location int) (count uint) (value (const (p uint))))))
+(def glUniform3uiv (fn extern-c void ((location int) (count uint) (value (const (p uint))))))
+(def glUniform4uiv (fn extern-c void ((location int) (count uint) (value (const (p uint))))))
+
+
 
 ;;;types
 (namespace gl
@@ -168,6 +185,39 @@
     (glUniform3ui (@: location value) v0 v1 v2)))
   (def uniform (fn extern void ((location Location) (v0 uint) (v1 uint) (v2 uint) (v3 uint))
     (glUniform4ui (@: location value) v0 v1 v2 v3)))
+
+  (def uniform (fn extern void ((location Location) (value (p float)))
+    (glUniform1fv (@: location value) 1 value)))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 1 float))))
+    (glUniform1fv (@: location value) 1 (cast value (p float)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 2 float))))
+    (glUniform2fv (@: location value) 1 (cast value (p float)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 3 float))))
+    (glUniform3fv (@: location value) 1 (cast value (p float)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 4 float))))
+    (glUniform4fv (@: location value) 1 (cast value (p float)))))
+
+  (def uniform (fn extern void ((location Location) (value (p int)))
+    (glUniform1iv (@: location value) 1 value)))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 1 int))))
+    (glUniform1iv (@: location value) 1 (cast value (p int)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 2 int))))
+    (glUniform2iv (@: location value) 1 (cast value (p int)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 3 int))))
+    (glUniform3iv (@: location value) 1 (cast value (p int)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 4 int))))
+    (glUniform4iv (@: location value) 1 (cast value (p int)))))
+
+  (def uniform (fn extern void ((location Location) (value (p uint)))
+    (glUniform1uiv (@: location value) 1 value)))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 1 uint))))
+    (glUniform1uiv (@: location value) 1 (cast value (p uint)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 2 uint))))
+    (glUniform2uiv (@: location value) 1 (cast value (p uint)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 3 uint))))
+    (glUniform3uiv (@: location value) 1 (cast value (p uint)))))
+  (def uniform (fn extern void ((location Location) (value (p (array-of 4 uint))))
+    (glUniform4uiv (@: location value) 1 (cast value (p uint)))))
 
   (def get-uniform-location (fn extern Location ((program Program) (name (p (const char))))
     (Location ((value (glGetUniformLocation (@: program value) name))))))
@@ -213,18 +263,15 @@
     (qq glEnableClientState (cast (array (uq array)) uint))))
   (def disable-client-state (fn extern void (void)
     (glDisableClientState)))
-  (using-namespace std.macros
   (def draw-arrays (macro extern (mode (first int) (count int))
     (qq glDrawArrays (cast (primitive (uq mode)) uint) (uq first) (uq count))))
   (def vertex-pointer (macro extern ((size int) type (stride int) ptr)
     (qq glVertexPointer (uq size) (cast (type (uq type)) uint) (uq stride) (cast (uq ptr) (p void)))))
-  )
    #|
-  (using-namespace std.macros
   (def with-client-state (macro extern (state ...)
     (qq do (enable-client-state (uq state))
            (uql (get-varargs-list (- (argcount mc) 1)))
-           (disable-client-state)))))
+           (disable-client-state))))
            |#
 
   (def flush (fn extern void (void)
