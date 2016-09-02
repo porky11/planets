@@ -2,48 +2,14 @@
 (import glut)
 (import spatial)
 (import util)
-
-(import cstdio)
 (import math)
-(import unique-ptr)
-(import concept-defs)
-(import derivations)
-(import array)
-
   
-(using-namespace std.concepts
-  (implement Type float)
-  (instantiate relations float)
-  (instantiate Array float 2)
-)
 
 (def Planet (struct intern
   ((pos (array-of 2 float))
    (vel (array-of 2 float)))))
-#|
-(def Planet (struct intern
-  ((pos (Array float 2))
-   (vel (Array float 2)))))
-(def = (fn intern bool ((p0 Planet) (p1 Planet))
-  (and (= (: p0 pos) (: p1 pos))
-       (= (: p0 vel) (: p1 vel)))))
-|#
-(using-namespace std.concepts
-  (implement Type Planet)
-  (implement Struct Planet)
-  ;(implement EqualityComparable Planet)
-  ;(instantiate UniquePtr Planet)
-  ;(instantiate Vector (UniquePtr Planet))
-)
 
 (def world (var intern (p Planet)))
-#|
-(def world (var intern (Vector (UniquePtr Planet))))
-
-
-
-
-|#
 
 (using-namespace std.macros
 (def pos (macro intern ((planet Planet))
@@ -62,7 +28,6 @@
   (q 3.14159265358979323846)))
 
 
-#|
 (using-namespace std
 (def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
   (let ((i int 0))
@@ -73,16 +38,6 @@
 
 
 (def circle (var intern (array-of 32 (array-of 2 float))))
-|#
-
-(def circle (var intern (array-of 4 (array-of 2 float))
-              (array
-                (array -1.0 0.0)
-                (array 0.0 1.0)
-                (array 1.0 0.0)
-                (array 0.0 -1.0))))
-
-
 
 (using-namespace gl
 (def program (var intern Program))
@@ -142,7 +97,7 @@ void main(void) {
   (create-window "test")
 
   (init-program)
-  ;(init-circle (# circle))
+  (init-circle (# circle))
   
   (setv world (malloc' 8 Planet))
   (using-namespace std
@@ -173,7 +128,7 @@ void main(void) {
       (mfor i (0 1 2 3 4 5 6 7)
         (uniform (get-uniform-location program "pos") (:@ (p+ world i) pos))
         (vertex-pointer 2 float 0 circle)
-        (draw-arrays triangle-fan 0 4))
+        (draw-arrays triangle-fan 0 32))
       (disable-client-state)
       (end)
       (flush)
