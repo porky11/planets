@@ -2,38 +2,71 @@
 (import glut)
 (import spatial)
 (import util)
+
+(import cstdio)
 (import math)
-  
+(import unique-ptr)
+(import concept-defs)
+(import derivations)
+(import array)
+(import vector)
+ 
+(std.concepts.instantiate Array float 2)
 
 (def Planet (struct intern
-  ((pos (array-of 2 float))
-   (vel (array-of 2 float)))))
+  ((pos (Array float 2))
+   (vel (Array float 2)))))
 
-(def world (var intern (p Planet)))
+(def = (fn intern bool ((p0 Planet) (p1 Planet))
+  (and (= (@: p0 pos) (@: p1 pos))
+       (= (@: p0 vel) (@: p1 vel)))))
+
+(def < (fn intern bool ((p0 Planet) (p1 Planet))
+  (and (< (@: p0 pos) (@: p1 pos))
+       (< (@: p0 vel) (@: p1 vel)))))
+
+(using-namespace std.concepts
+  (implement Type Planet)
+  (implement Struct Planet)
+  (instantiate relations Planet)
+  (implement EqualityComparable Planet)
+  (instantiate UniquePtr Planet))
+
+(def = (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
+                        (p1 (ref (const (UniquePtr Planet)))))
+  (and (= (@:@ (get (@ p0)) pos) (@:@ (get (@ p1)) pos))
+       (= (@:@ (get (@ p0)) vel) (@:@ (get (@ p1)) vel)))))
+
+(def < (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
+                        (p1 (ref (const (UniquePtr Planet)))))
+  (and (< (@:@ (get (@ p0)) pos) (@:@ (get (@ p1)) pos))
+       (< (@:@ (get (@ p0)) vel) (@:@ (get (@ p1)) vel)))))
+
+(using-namespace std.concepts
+  (instantiate relations (UniquePtr Planet))
+  (implement EqualityComparable (UniquePtr Planet))
+  (implement LessThanComparable (UniquePtr Planet))
+  (instantiate swap (UniquePtr Planet))
+  (implement Swappable (UniquePtr Planet))
+  (instantiate Vector (UniquePtr Planet)))
+
+(def world (var intern (Vector (UniquePtr Planet))))
 
 (using-namespace std.macros
 (def pos (macro intern ((planet Planet))
   (qq : (uq planet) pos)))
 (def vel (macro intern ((planet Planet))
-  (qq : (uq planet) vel)))
-)
-
-
-
-
-(def world (var intern (p Planet)))
-
+  (qq : (uq planet) vel))))
 
 (def pi (macro intern (void)
   (q 3.14159265358979323846)))
-
 
 (using-namespace std
 (def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
   (let ((i int 0))
     (for true (< i 32) (incv i)
-      (setf ($ ($ (@ circle) i) 0) (cos (*' (/' (pi) 16) i)))
-      (setf ($ ($ (@ circle) i) 1) (sin (*' (/' (pi) 16) i)))))
+      (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/' (pi) 16) i)))
+      (setf ($ (@ ($ (@ circle) i)) 1) (sin (*' (/' (pi) 16) i)))))
       (return))))
 
 
@@ -89,6 +122,7 @@ void main(void) {
 (using-namespace glut
 (using-namespace gl
 (def main (fn extern-c int ((argc int) (argv (p (p char))))
+  (init world 8)
 
   (init (# argc) argv)
   (init-display-mode (| (mode depth) (| (mode single) (mode rgba))))
@@ -98,20 +132,23 @@ void main(void) {
 
   (init-program)
   (init-circle (# circle))
-  
-  (setv world (malloc' 8 Planet))
+
   (using-namespace std
-  (mfor i (0 1 2 3 4 5 6 7)
-    (setf (pos (@ (p+ world i))) (array 0.0 0.0))
-    (setf (vel (@ (p+ world i)))
-          (array
-            (/ (cos (*' (/ (pi) 4.0) i)) 50000.0)
-            (/ (sin (*' (/ (pi) 4.0) i)) 50000.0))))
-  )
+    (mfor i (0 1 2 3 4 5 6 7)
+      (let ((planet (p Planet) (malloc' 1 Planet))
+            (up-planet (UniquePtr Planet)))
+        (setf ($ (@:@ planet pos) 0) 0.0)
+        (setf ($ (@:@ planet pos) 1) 0.0)
+        (setf ($ (@:@ planet vel) 0) (/ (cos (*' (/ (pi) 4.0) i)) 50000.0))
+        (setf ($ (@:@ planet vel) 1) (/ (sin (*' (/ (pi) 4.0) i)) 50000.0))
+        (init up-planet planet)
+        (push-back world (move up-planet)))))
+
   (idle-func (void)
     (mfor i (0 1 2 3 4 5 6 7)
-      (incf ($ (:@ (p+ world i) pos) 0) (@$ (:@ (p+ world i) vel) 0))
-      (incf ($ (:@ (p+ world i) pos) 1) (@$ (:@ (p+ world i) vel) 1)))
+      (let ((planet \ (get (@ ($ world i)))))
+        (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
+        (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))))
     (glutPostRedisplay)
     (return))
 
@@ -126,15 +163,16 @@ void main(void) {
       (uniform (get-uniform-location program "lpos") (* y (sin x)) (* y (cos x)))
       (uniform (get-uniform-location program "scale") 0.1)
       (mfor i (0 1 2 3 4 5 6 7)
-        (uniform (get-uniform-location program "pos") (:@ (p+ world i) pos))
-        (vertex-pointer 2 float 0 circle)
-        (draw-arrays triangle-fan 0 32))
+        (let ((myvar (array-of 2 float)))
+          (setf ($ myvar 0) (@$ (@:@ (get (@ ($ world i))) pos) 0))
+          (setf ($ myvar 1) (@$ (@:@ (get (@ ($ world i))) pos) 1))
+          (uniform (get-uniform-location program "pos") (# myvar))
+          (vertex-pointer 2 float 0 circle)
+          (draw-arrays triangle-fan 0 32)))
       (disable-client-state)
       (end)
       (flush)
       (return))))
   (main-loop)
-  (free' world)
   (return 0)))
 ))
-
