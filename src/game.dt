@@ -119,7 +119,7 @@ void main(void) {
   
 
 
-  (init world 8)
+  (init world 512)
 
   (init (# argc) argv)
   (init-display-mode (| depth (| single rgba)))
@@ -142,10 +142,11 @@ void main(void) {
         (push-back world (move up-planet)))))
 
   (idle-func (void)
-    (for (i \ 0) (< i 8) (incv i)
-      (let ((planet \ (get (@ ($ world i)))))
-        (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
-        (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))))
+    (let ((e \ (end world)))
+      (for (b \ (begin world)) (< b e) (setv b (successor b))
+        (let ((planet (p (UniquePtr Planet)) (source b)))
+          (incf ($ (@:@ (@ planet) pos) 0) (@$ (@:@ (@ planet) vel) 0))
+          (incf ($ (@:@ (@ planet) pos) 1) (@$ (@:@ (@ planet) vel) 1)))))
     (glutPostRedisplay)
     (return))
 
