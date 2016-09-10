@@ -3,7 +3,7 @@
 (import stdlib)
 (import macros-core)
 (import macros)
-
+(import enum)
 
 ;;c-functions
 (def glutInit
@@ -26,15 +26,15 @@
   (fn extern-c void (void)))
 
 (namespace glut
-  (def key
-    (enum extern uint ((F1 0x0001) F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12
-                       (left 0x0064) up right down
-                       page-up page-down home end insert)))
-  (def button
-    (enum extern uint ((left 0x0000) middle right)))
+  (def-enum key extern uint
+    ((F1 0x0001) F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12
+     (left 0x0064) up right down
+     page-up page-down home end insert))
 
-  (def mode
-    (enum extern uint ((rgb 0x0000) 
+  ;(def-enum button extern uint ((left 0x0000) middle right))
+
+  (def-enum mode extern uint
+                      ((rgb 0x0000) 
                        (rgba 0x0000)
                        (index 0x0001)
                        (single 0x0000)
@@ -45,7 +45,7 @@
                        (stencil 0x0020)
                        (multisample 0x0080)
                        (stereo 0x0100)
-                       (luminance 0x0200))))
+                       (luminance 0x0200)))
   (def init
     (fn extern void ((argc (p int)) (argv (p (p char))))
       (glutInit argc argv)))
@@ -71,7 +71,7 @@
     (fn extern void (void)
       (glutMainLoop)))
   (def init-display-mode (fn extern void ((mode mode))
-    (glutInitDisplayMode (cast mode uint))))
+    (glutInitDisplayMode (value mode))))
 )
 
 

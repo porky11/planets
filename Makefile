@@ -7,7 +7,7 @@ all: game
 game: libglut.dtm libgl.dtm libspatial.dtm libutil.dtm src/game.dt
 	dalec src/game.dt -lGL -lglut -o game
 
-libgl.dtm: src/gl.dt
+libgl.dtm: src/gl.dt libutil.dtm
 	dalec -c src/gl.dt
 
 libglut.dtm: src/glut.dt

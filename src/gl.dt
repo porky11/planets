@@ -1,14 +1,16 @@
 (module gl)
 
-
+(import enum)
+(import util)
 
 ;;;constants
 
 
 (namespace gl
 
-  (def attrib-mask
-    (enum intern uint ((current 0x1)
+#|
+(def-enum attrib-mask extern uint
+                      ((current 0x1)
                        (point 0x2)
                        (line 0x4)
                        (polygon 0x8)
@@ -29,66 +31,68 @@
                        (texture 0x40000)
                        (scissor 0x80000)
                        (multisample 0x20000000)
-                       (all-attrib 0xFFFFFFFF))))
-                         
+                       (all-attrib 0xFFFFFFFF)))
+|#                         
     
-  (def clear-buffer-mask
-    (enum intern uint
+  (def-enum clear-buffer-mask
+    extern uint
       ((depth 0x100)
        (accum 0x200)
        (stencil 0x400)
        (color 0x4000)
-       (coverage 0x8000))))
+       (coverage 0x8000)))
 
-  (def client-attrib-mask
-    (enum intern uint
+
+#|  (def-enum client-attrib-mask
+    extern uint
       ((pixel-store 0x1)
        (vertex-array 0x2)
-       (all-attrib 0xFFFFFFFF))))
-
-  (def context-flag-mask
-    (enum intern uint
+       (all-attrib 0xFFFFFFFF)))
+|#
+  (def-enum context-flag-mask
+    extern uint
       ((forward-compatible 0x1)
        (debug 0x2)
        (robust-access 0x4)
-       (no-error 0x8))))
+       (no-error 0x8)))
 
-  (def pname
-    (enum intern uint
+  (def-enum pname
+    extern uint
       ((shader-type 0x8B4F)
        (delete-status 0x8B80)
        (compile-status 0x8B81)
        (info-log-length 0x8B84)
-       (shader-source-length 0x8B88))))
+       (shader-source-length 0x8B88)))
 
-  (def context-profile-mask
-    (enum intern uint
+  (def-enum context-profile-mask
+    extern uint
       ((core 0x1)
-       (compability 0x2))))
+       (compability 0x2)))
 
 
-  (def shader-type
-    (enum intern uint
-      ((fragment 0x8B30)
-       vertex)))
+  (def-enum shader-type
+    extern uint
+      ((fragment-shader 0x8B30)
+       vertex-shader))
 
-  (def primitive
-    (enum intern uint (points
+  (def-enum primitive
+     extern uint (points
                        lines line-loop line-strip
                        triangles triangle-strip triangle-fan
                        quads quad-strip
-                       polygon)))
+                       polygon))
 
-  (def type
-    (enum intern uint ((byte 0x1400) ubyte
+  (def-enum type
+    extern uint ((byte 0x1400) ubyte
                        short ushort
                        int uint
                        float
-                       2-bytes 3-bytes 4-bytes
-                       double)))
-  (def array
-    (enum intern uint ((vertex 0x8074) normal color index texture-coord edge-flag)))
+                       bytes-2 bytes-3 bytes-4
+                       double))
+  (def-enum array
+    extern uint ((vertex-array 0x8074) normal-array color-array index-array texture-coord-array edge-flag-array))
 )
+
 
 (import macros)
 
@@ -223,8 +227,8 @@
     (Location ((value (glGetUniformLocation (@: program value) name))))))
 
 
-  (def create-shader (macro extern (shader-type)
-    (qq Shader ((value (glCreateShader (cast (shader-type (uq shader-type)) uint)))))))
+  (def create-shader (fn extern Shader ((shader-type shader-type))
+    (Shader ((value (glCreateShader (value shader-type)))))))
   (def shader-source (fn extern void ((shader Shader) (str (p (const char))))
     (glShaderSource (@: shader value) 1 (# str) (nullptr int))))
   (def compile-shader (fn extern void ((shader Shader))
@@ -232,15 +236,19 @@
 
   (def create-program (fn extern Program (void)
     (Program ((value (glCreateProgram))))))
+
   (def attach-shader (fn extern void ((program Program) (shader Shader))
     (glAttachShader (@: program value) (@: shader value))))
     
-  (def get-shader-iv (macro extern ((shader Shader) pname)
+  (def get-shader-iv (macro extern ((shader Shader) (pname pname))
     (let ((name \ (make-gensym-var-node mc)))
       (qq do (def (uq name) (var auto int 0))
-             (glGetShaderiv (@: (uq shader) value) (cast (pname (uq pname)) uint) (# (uq name)))
+             (glGetShaderiv (@: (uq shader) value) (value (uq pname)) (# (uq name)))
              (move (uq name))))))
     #|
+  (def attach-shader (macro extern ((program Program) (shader Shader) ...)
+    (qq do (attach-shader (uq program) (uq shader))
+           (attach-shader (uq program) (uql (get-varargs-list (- (arg-count mc) 2)))))))
   (def attach-shader (macro extern ((program Program) (shader Shader) ...)
     (qq do (attach-shader (uq program) (uq shader))
            (attach-shaders (uq program) (uql (get-varargs-list (- (arg-count mc) 2)))))))
@@ -251,22 +259,22 @@
     (glUseProgram (@: program value))))
 
 
-  (def clear (macro extern (mask)
-    (qq glClear (cast (clear-buffer-mask (uq mask)) uint))))
+  (def clear (fn extern void ((mask clear-buffer-mask))
+    (glClear (value mask))))
   (def begin (fn extern void ((mode primitive))
-    (glBegin (cast mode uint))))
+    (glBegin (value mode))))
   (def vertex (fn extern void ((x float) (y float) (z float))
     (glVertex3f x y z)))
   (def end (fn extern void (void)
     (glEnd)))
-  (def enable-client-state (macro extern (array)
-    (qq glEnableClientState (cast (array (uq array)) uint))))
+  (def enable-client-state (fn extern void ((array array))
+    (glEnableClientState (value array))))
   (def disable-client-state (fn extern void (void)
     (glDisableClientState)))
-  (def draw-arrays (macro extern (mode (first int) (count int))
-    (qq glDrawArrays (cast (primitive (uq mode)) uint) (uq first) (uq count))))
-  (def vertex-pointer (macro extern ((size int) type (stride int) ptr)
-    (qq glVertexPointer (uq size) (cast (type (uq type)) uint) (uq stride) (cast (uq ptr) (p void)))))
+  (def draw-arrays (fn extern void ((mode primitive) (first int) (count int))
+    (glDrawArrays (value mode) first count)))
+  (def vertex-pointer (macro extern ((size int) (type type) (stride int) ptr)
+    (qq glVertexPointer (uq size) (value (uq type)) (uq stride) (cast (uq ptr) (p void)))))
    #|
   (def with-client-state (macro extern (state ...)
     (qq do (enable-client-state (uq state))

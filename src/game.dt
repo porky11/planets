@@ -10,6 +10,7 @@
 (import derivations)
 (import array)
 (import vector)
+
  
 (std.concepts.instantiate Array float 2)
 
@@ -21,31 +22,26 @@
   (and (= (@: p0 pos) (@: p1 pos))
        (= (@: p0 vel) (@: p1 vel)))))
 
-(def < (fn intern bool ((p0 Planet) (p1 Planet))
-  (and (< (@: p0 pos) (@: p1 pos))
-       (< (@: p0 vel) (@: p1 vel)))))
+(def != (fn intern bool ((p0 Planet) (p1 Planet))
+  (or (!= (@: p0 pos) (@: p1 pos))
+      (!= (@: p0 vel) (@: p1 vel)))))
 
 (using-namespace std.concepts
   (implement Type Planet)
   (implement Struct Planet)
-  (instantiate relations Planet)
   (implement EqualityComparable Planet)
   (instantiate UniquePtr Planet))
 
 (def = (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
                         (p1 (ref (const (UniquePtr Planet)))))
-  (and (= (@:@ (get (@ p0)) pos) (@:@ (get (@ p1)) pos))
-       (= (@:@ (get (@ p0)) vel) (@:@ (get (@ p1)) vel)))))
+  (p= p0 p1)))
 
-(def < (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
+(def != (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
                         (p1 (ref (const (UniquePtr Planet)))))
-  (and (< (@:@ (get (@ p0)) pos) (@:@ (get (@ p1)) pos))
-       (< (@:@ (get (@ p0)) vel) (@:@ (get (@ p1)) vel)))))
+  (not (p= p0 p1))))
 
 (using-namespace std.concepts
-  (instantiate relations (UniquePtr Planet))
   (implement EqualityComparable (UniquePtr Planet))
-  (implement LessThanComparable (UniquePtr Planet))
   (instantiate swap (UniquePtr Planet))
   (implement Swappable (UniquePtr Planet))
   (instantiate Vector (UniquePtr Planet)))
@@ -77,8 +73,8 @@
 
 (def init-program (fn intern void (void)
   (setv program (create-program))
-  (let ((vertex-shader \ (create-shader vertex))
-        (fragment-shader \ (create-shader fragment)))
+  (let ((vertex-shader \ (create-shader vertex-shader))
+        (fragment-shader \ (create-shader fragment-shader)))
     (shader-source vertex-shader "
       uniform vec2 pos;
       uniform float scale;
@@ -115,17 +111,18 @@ void main(void) {
 )
 
 (def x (var intern float 0.0))
-(def y (var intern float 0.0))
 
 
 
 (using-namespace glut
-(using-namespace gl
 (def main (fn extern-c int ((argc int) (argv (p (p char))))
+  
+
+
   (init world 8)
 
   (init (# argc) argv)
-  (init-display-mode (| (mode depth) (| (mode single) (mode rgba))))
+  (init-display-mode (| depth (| single rgba)))
   (init-window-position 100 100)
   (init-window-size 500 500)
   (create-window "test")
@@ -134,7 +131,7 @@ void main(void) {
   (init-circle (# circle))
 
   (using-namespace std
-    (mfor i (0 1 2 3 4 5 6 7)
+    (for (i \ 0) (< i 8) (incv i)
       (let ((planet (p Planet) (malloc' 1 Planet))
             (up-planet (UniquePtr Planet)))
         (setf ($ (@:@ planet pos) 0) 0.0)
@@ -145,7 +142,7 @@ void main(void) {
         (push-back world (move up-planet)))))
 
   (idle-func (void)
-    (mfor i (0 1 2 3 4 5 6 7)
+    (for (i \ 0) (< i 8) (incv i)
       (let ((planet \ (get (@ ($ world i)))))
         (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
         (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))))
@@ -156,13 +153,13 @@ void main(void) {
     (using-namespace gl
     (using-namespace std
       (clear color)
-      (enable-client-state vertex)
+      (enable-client-state vertex-array)
       (use-program program)
       (incf (# x) 0.002)
       (def y (var auto \ (/ (sqrt x) 10.0)))
       (uniform (get-uniform-location program "lpos") (* y (sin x)) (* y (cos x)))
       (uniform (get-uniform-location program "scale") 0.1)
-      (mfor i (0 1 2 3 4 5 6 7)
+      (for (i \ 0) (< i 8) (incv i)
         (let ((myvar (array-of 2 float)))
           (setf ($ myvar 0) (@$ (@:@ (get (@ ($ world i))) pos) 0))
           (setf ($ myvar 1) (@$ (@:@ (get (@ ($ world i))) pos) 1))
@@ -175,4 +172,4 @@ void main(void) {
       (return))))
   (main-loop)
   (return 0)))
-))
+)

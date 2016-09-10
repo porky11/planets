@@ -3,6 +3,10 @@
 (import macros)
 
 (using-namespace std.macros
+  (def macro-print (macro extern (object)
+    (print object)
+    (printf "\n")
+    (qq no-op)))
   (def incf (macro extern (val res)
     (let ((pos \ (make-gensym-var-node mc)))
       (qq let (((uq pos) \ (uq val)))
