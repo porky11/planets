@@ -2,17 +2,27 @@
 
 (import macros)
 
-(def ignore (macro extern (...)
-  (std.macros.qq no-op)))
-
-
 (using-namespace std.macros
-  (def macro-print (macro extern (object)
-    (print object)
-    (printf "\n")
-    (qq no-op)))
-  (def incf (macro extern (val res)
-    (let ((pos \ (make-gensym-var-node mc)))
-      (qq let (((uq pos) \ (uq val)))
-        (setf (uq pos) (+ (@ (uq pos)) (uq res))))))))
+
+(def ignore (macro extern (...)
+  (qq no-op)))
+
+(def def-ptr-macro (macro extern (name linkage type)
+  (qq def (uq name) (macro (uq linkage) ((value (p (uq type))))
+    (qq (uq name) (@ (uq (uq value))))))))
+
+(def def-ptr-macro2 (macro extern (name linkage type)
+  (qq def (uq name) (macro (uq linkage) ((value1 (p (uq type))) (value2 (p (uq type))))
+    (qq (uq name) (@ (uq (uq value1))) (@ (uq (uq value2))))))))
+
+(def macro-print (macro extern (object)
+  (print object)
+  (printf "\n")
+  (qq no-op)))
+
+(def incf (macro extern (val res)
+  (let ((pos \ (make-gensym-var-node mc)))
+    (qq let (((uq pos) \ (uq val)))
+      (setf (uq pos) (+ (@ (uq pos)) (uq res)))))))
+)
 

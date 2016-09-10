@@ -1,43 +1,29 @@
-prefix=/usr/local
-bindir=$(prefix)/bin
-
+.RECIPEPREFIX+= 
 
 all: game
 
-game: libglut.dtm libgl.dtm libspatial.dtm libutil.dtm src/game.dt
-	dalec src/game.dt -lGL -lglut -o game
+game: libglut.dtm libgl.dtm libspatial.dtm libutil.dtm libsequence-math.dtm src/game.dt
+  dalec src/game.dt -lGL -lglut -o game
 
 libgl.dtm: src/gl.dt libutil.dtm
-	dalec -c src/gl.dt
+  dalec -c src/gl.dt
 
 libglut.dtm: src/glut.dt
-	dalec -c src/glut.dt
+  dalec -c src/glut.dt
 
 libspatial.dtm: src/spatial.dt
-	dalec -c src/spatial.dt
+  dalec -c src/spatial.dt
 
 libutil.dtm: src/util.dt
-	dalec -c src/util.dt
+  dalec -c src/util.dt
 
-src/game.dt:
-	true
+libsequence-math.dtm: src/sequence-math.dt
+  dalec -c src/sequence-math.dt
 
-src/gl.dt:
-	true
+src/%.dt:
+  true
 
-src/glut.dt:
-	true
-
-src/spatial.dt:
-	true
-
-src/util.dt:
-	true
-
-
+.PHONY: all clean
 clean:
-	rm -f game && rm *.so && rm *.bc && rm *.dtm
-
-install:
-	install game $(bindir)/game -m 755
+  rm -f game && rm *.so && rm *.bc && rm *.dtm
 

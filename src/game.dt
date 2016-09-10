@@ -10,18 +10,25 @@
 (import derivations)
 (import array)
 (import vector)
+(import sequence-math)
+(import assert)
 
  
-(std.concepts.instantiate Array float 2)
+(ignore using-namespace std.concepts
+  (instantiate Array float 2)
+  (instantiate + (Array float 2))
+)
 
 (def Planet (struct intern
   ((pos (Array float 2))
    (vel (Array float 2))
    (r float))))
 
+;(def pos ((fn (planet Planet)))
+
 #|
 (def collide (fn intern ((p0 Planet) (p1 Planet)))
-  (let ((dis 
+  (let ((dis (
 |#
 
 (def = (fn intern bool ((p0 Planet) (p1 Planet))
@@ -36,7 +43,9 @@
   (implement Type Planet)
   (implement Struct Planet)
   (implement EqualityComparable Planet)
-  (instantiate UniquePtr Planet))
+  (instantiate UniquePtr Planet)
+)
+
 
 (def = (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
                         (p1 (ref (const (UniquePtr Planet)))))
@@ -59,8 +68,13 @@
 (def pos (macro intern ((planet Planet))
   (qq : (uq planet) pos)))
 (def vel (macro intern ((planet Planet))
-  (qq : (uq planet) vel))))
+  (qq : (uq planet) vel)))
+(def-ptr-macro pos intern Planet)
+(def-ptr-macro vel intern Planet)
 
+(def-ptr-macro2 + intern (Array float 2))
+
+)
 (def pi (macro intern (void)
   (q 3.14159265358979323846)))
 
@@ -153,15 +167,17 @@ void main(void) {
   )
 
   (idle-func (void)
-    (for (i \ 0) (< i (cast (size world) int)) (incf (# i))
+    (for (i \ 0) (< i (cast (size world) int)) (incv i)
       (let ((planet \ (get (@ ($ world i)))))
         (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
         (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))))
-    (for (i \ 0) (< i (cast (size world) int)) (incf (# i))
+    (for (i \ 0) (< i (cast (size world) int)) (incv i)
       (let ((p0 \ (get (@ ($ world i)))))
-        (for (j \ (+ i 1)) (< j (cast (size world) int)) (incf (# j))
+        (for (j \ (+ i 1)) (< j (cast (size world) int)) (incv j)
           (let ((p1 \ (get (@ ($ world j)))))
-            (ignore collide p0 p1)))))
+            (let ((test \ (+ (pos p0) (pos p1))))
+              (printf "x:%i|y:%i" (@$ test 0) (@$ test 1))
+              (ignore collide p0 p1))))))
     (glutPostRedisplay)
     (return))
 
