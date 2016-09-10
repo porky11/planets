@@ -2,6 +2,10 @@
 
 (import macros)
 
+(def ignore (macro extern (...)
+  (std.macros.qq no-op)))
+
+
 (using-namespace std.macros
   (def macro-print (macro extern (object)
     (print object)

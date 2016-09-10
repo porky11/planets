@@ -16,7 +16,13 @@
 
 (def Planet (struct intern
   ((pos (Array float 2))
-   (vel (Array float 2)))))
+   (vel (Array float 2))
+   (r float))))
+
+#|
+(def collide (fn intern ((p0 Planet) (p1 Planet)))
+  (let ((dis 
+|#
 
 (def = (fn intern bool ((p0 Planet) (p1 Planet))
   (and (= (@: p0 pos) (@: p1 pos))
@@ -35,6 +41,7 @@
 (def = (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
                         (p1 (ref (const (UniquePtr Planet)))))
   (p= p0 p1)))
+
 
 (def != (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
                         (p1 (ref (const (UniquePtr Planet)))))
@@ -137,23 +144,29 @@ void main(void) {
     (for (i \ 0) (< i 8) (incv i)
       (let ((planet (p Planet) (malloc' 1 Planet))
             (up-planet (UniquePtr Planet)))
-        (setf ($ (@:@ planet pos) 0) 0.0)
-        (setf ($ (@:@ planet pos) 1) 0.0)
+        (setf ($ (@:@ planet pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
+        (setf ($ (@:@ planet pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
         (setf ($ (@:@ planet vel) 0) (/ (cos (*' (/ (pi) 4.0) i)) 50000.0))
         (setf ($ (@:@ planet vel) 1) (/ (sin (*' (/ (pi) 4.0) i)) 50000.0))
         (init up-planet planet)
-        (push-back world (move up-planet)))))
+        (push-back world (move up-planet))))
+  )
 
   (idle-func (void)
-    (for (i \ 0) (< i 8) (incv i)
+    (for (i \ 0) (< i (cast (size world) int)) (incf (# i))
       (let ((planet \ (get (@ ($ world i)))))
         (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
         (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))))
+    (for (i \ 0) (< i (cast (size world) int)) (incf (# i))
+      (let ((p0 \ (get (@ ($ world i)))))
+        (for (j \ (+ i 1)) (< j (cast (size world) int)) (incf (# j))
+          (let ((p1 \ (get (@ ($ world j)))))
+            (ignore collide p0 p1)))))
     (glutPostRedisplay)
     (return))
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
-      (incf (# cam) (cond ((= key (@$ "a" 0)) 0.02) ((= key (@$ "d" 0)) -0.02) (true 0.01)))
+      (incf (# cam) (cond ((= key (@$ "a" 0)) 0.02) ((= key (@$ "d" 0)) -0.02) (true 0.00)))
       (return)))
   (display-func (void)
     (using-namespace gl
