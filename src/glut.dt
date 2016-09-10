@@ -25,6 +25,10 @@
 (def glutPostRedisplay
   (fn extern-c void (void)))
 
+(def glutKeyboardFunc
+  (fn extern-c void ((func (p (fn void ((key char) (x int) (y int))))))))
+
+
 (namespace glut
   (def-enum key extern uint
     ((F1 0x0001) F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12

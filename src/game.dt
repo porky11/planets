@@ -76,13 +76,14 @@
   (let ((vertex-shader \ (create-shader vertex-shader))
         (fragment-shader \ (create-shader fragment-shader)))
     (shader-source vertex-shader "
+      uniform float cam;
       uniform vec2 pos;
       uniform float scale;
       varying vec2 p;
       varying vec2 c;
       void main(void) {
         c=gl_Vertex.xy;
-        p=c*scale+pos;
+        p=c*scale+pos+vec2(cam,0);
         gl_Position = vec4(p,0,1);
       }
     ")
@@ -111,6 +112,8 @@ void main(void) {
 )
 
 (def x (var intern float 0.0))
+
+(def cam (var intern float 0.0))
 
 
 
@@ -149,9 +152,13 @@ void main(void) {
     (glutPostRedisplay)
     (return))
 
+  (glutKeyboardFunc (fn void ((key char) (x int) (y int))
+      (incf (# cam) (cond ((= key (@$ "a" 0)) 0.02) ((= key (@$ "d" 0)) -0.02) (true 0.01)))
+      (return)))
   (display-func (void)
     (using-namespace gl
     (using-namespace std
+      (uniform (get-uniform-location program "cam") cam)
       (clear color)
       (enable-client-state vertex-array)
       (use-program program)
