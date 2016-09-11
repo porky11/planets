@@ -44,6 +44,11 @@
     (concept-assert (exists-fn mc (qq (uq T) / (uq T) (uq T))) T "/ is not defined over this type")
     success))
 
+(def-concept Mulable (refines Type) (T) 
+  (let ((success \ true))
+    (concept-assert (exists-fn mc (qq (uq T) / (uq T) (uq T))) T "/ is not defined over this type")
+    success))
+
 
 (def-concept-macro + extern ((T Container))
   (assert-concept (value-type (nullptr (uq T))) Addable)
@@ -98,6 +103,23 @@
               (do (setv ab (successor ab))
                   (setv ob (successor ob)))
               (sink ob (/ (@ (source ab)) b)))))
+        (return))))))
+
+(def-concept-macro * extern ((T Container) (val-type Mulable))
+  ;(let ((val-type \ (value-type (nullptr (uq T)))))
+  ;(assert-concept val-type Mulable))
+    (using-namespace std.macros
+    (qq do
+      (import unistd)
+      (def * (fn extern (retval (uq T)) ((a (uq T)) (b (uq val-type)))
+        (let ((size \ (size a)))
+          (let ((ab \ (begin a))
+                (ob \ (begin (@ retval)))
+                (ae \ (end a)))
+            (for true (!= ab ae)
+              (do (setv ab (successor ab))
+                  (setv ob (successor ob)))
+              (sink ob (* (@ (source ab)) b)))))
         (return))))))
 
 ))

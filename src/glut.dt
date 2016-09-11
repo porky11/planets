@@ -18,6 +18,8 @@
   (fn extern-c void ((callback (p (fn void (void)))))))
 (def glutIdleFunc
   (fn extern-c void ((callback (p (fn void (void)))))))
+(def glutTimerFunc
+  (fn extern-c void ((time int) (callback (p (fn void ((a int))))) (some int))))
 (def glutMainLoop
   (fn extern-c void (void)))
 (def glutInitDisplayMode

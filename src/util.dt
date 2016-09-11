@@ -31,5 +31,15 @@
   (let ((pos \ (make-gensym-var-node mc)))
     (qq let (((uq pos) \ (uq val)))
       (setf (uq pos) (- (@ (uq pos)) (uq res)))))))
+
+(def mulf (macro extern (val res)
+  (let ((pos \ (make-gensym-var-node mc)))
+    (qq let (((uq pos) \ (uq val)))
+      (setf (uq pos) (* (@ (uq pos)) (uq res)))))))
+
+(def divf (macro extern (val res)
+  (let ((pos \ (make-gensym-var-node mc)))
+    (qq let (((uq pos) \ (uq val)))
+      (setf (uq pos) (/ (@ (uq pos)) (uq res)))))))
 )
 
