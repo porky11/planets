@@ -97,9 +97,8 @@
                 (ae \ (end a)))
             (for true (!= ab ae)
               (do (setv ab (successor ab))
-                  (setv bb (successor bb))
                   (setv ob (successor ob)))
-              (sink ob (- (@ (source ab)) (@ (source bb)))))))
+              (sink ob (/ (@ (source ab)) b)))))
         (return)))))))
 
 ))
