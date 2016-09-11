@@ -17,9 +17,11 @@
 (using-namespace std.concepts
   (implement Addable float)
   (implement Subable float)
+  (implement Divable float)
   (instantiate Array float 2)
   (instantiate + (Array float 2))
   (instantiate - (Array float 2))
+  (instantiate / (Array float 2) float)
 )
 
 (def Planet (struct intern
@@ -32,8 +34,8 @@
   (qq : (uq planet) pos)))
 (def vel (macro intern ((planet Planet))
   (qq : (uq planet) vel)))
-;;(def-ptr-macro pos intern Planet)
-;;(def-ptr-macro vel intern Planet)
+(def-ptr-macro pos intern Planet)
+(def-ptr-macro vel intern Planet)
 ;;(macro-print ok-ptr-macro)
 
 ;;(def-ptr-macro2 + intern (Array float 2))
@@ -46,9 +48,9 @@
 (def collide (fn intern void ((p0 (ref Planet)) (p1 (ref Planet)))
   (let ((disvec (Array float 2) (- (@:@ p0 pos) (@:@ p1 pos)))
         (abs2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
-        (acc \ (/ disvec abs2)))
-    (incf (vel p0) acc)
-    (decf (vel p1) acc))
+        (acc \ (/ disvec (* abs2 10000000.0))))
+    (incf (vel p1) acc)
+    (decf (vel p0) acc))
   (return)))
 )
 (def-ptr-macro2 collide intern Planet)

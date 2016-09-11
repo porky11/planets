@@ -83,15 +83,14 @@
               (sink ob (- (@ (source ab)) (@ (source bb)))))))
         (return))))))
 
-(def-concept-macro / extern ((T Container))
-  (let ((val-type \ (value-type (nullptr (uq T)))))
-  (assert-concept val-type Divable)
+(def-concept-macro / extern ((T Container) (val-type Divable))
+  ;(let ((val-type \ (value-type (nullptr (uq T)))))
+  ;(assert-concept val-type Divable))
     (using-namespace std.macros
     (qq do
       (import unistd)
-      (def \ (fn extern (retval (uq T)) ((a (uq T)) (b (uq val-type)))
+      (def / (fn extern (retval (uq T)) ((a (uq T)) (b (uq val-type)))
         (let ((size \ (size a)))
-          (and (!= (size a) (size b)) (do (fprintf stderr "containers are not of equal size\n") (abort)))
           (let ((ab \ (begin a))
                 (ob \ (begin (@ retval)))
                 (ae \ (end a)))
@@ -99,7 +98,7 @@
               (do (setv ab (successor ab))
                   (setv ob (successor ob)))
               (sink ob (/ (@ (source ab)) b)))))
-        (return)))))))
+        (return))))))
 
 ))
 #|
