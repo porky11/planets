@@ -14,21 +14,21 @@
 (import assert)
  
 (using-namespace std.concepts
-  (implement Addable float)
-  (implement Subable float)
-  (implement Mulable float)
-  (implement Divable float)
-  (instantiate Array float 2)
-  (instantiate + (Array float 2))
-  (instantiate - (Array float 2))
-  (instantiate * (Array float 2) float)
-  (instantiate / (Array float 2) float)
+  (implement Addable int)
+  (implement Subable int)
+  (implement Mulable int)
+  (implement Divable int)
+  (instantiate Array int 2)
+  (instantiate + (Array int 2))
+  (instantiate - (Array int 2))
+  (instantiate * (Array int 2) int)
+  (instantiate / (Array int 2) int)
 )
 
 (def Planet (struct intern
-  ((pos (Array float 2))
-   (vel (Array float 2))
-   (r float))))
+  ((pos (Array int 2))
+   (vel (Array int 2))
+   (r int))))
 
 (using-namespace std.macros
 (def pos (macro intern ((planet Planet))
@@ -39,7 +39,7 @@
 (def-ptr-macro vel intern Planet)
 ;;(macro-print ok-ptr-macro)
 
-;;(def-ptr-macro2 + intern (Array float 2))
+;;(def-ptr-macro2 + intern (Array int 2))
 ;;(macro-print ok-ptr-macro2)
 
 )
@@ -47,8 +47,8 @@
 
 (using-namespace std
 (def collide (fn intern void ((p0 (ref Planet)) (p1 (ref Planet)))
-  (let ((disvec (Array float 2) (- (@:@ p0 pos) (@:@ p1 pos)))
-        (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
+  (let ((disvec (Array int 2) (- (@:@ p0 pos) (@:@ p1 pos)))
+        (dis2 \ (+ (pow (@$ disvec 0) 2) (pow (@$ disvec 1) 2)))
         (dir \ (/ disvec dis2))
         (dis \ (sqrt dis2))
         (acc \ (* disvec (/ (- dis (+ (@:@ p0 r) (@:@ p1 r))) (* dis 8.0)))))
@@ -95,7 +95,7 @@
   (q 3.14159265358979323846)))
 
 (using-namespace std
-(def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
+(def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 int)))))
   (let ((i int 0))
     (for true (< i 32) (incv i)
       (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/' (pi) 16) i)))
@@ -103,7 +103,7 @@
       (return))))
 
 
-(def circle (var intern (array-of 32 (array-of 2 float))))
+(def circle (var intern (array-of 32 (array-of 2 int))))
 
 (using-namespace gl
 (def program (var intern Program))
@@ -113,27 +113,27 @@
   (let ((vertex-shader \ (create-shader vertex-shader))
         (fragment-shader \ (create-shader fragment-shader)))
     (shader-source vertex-shader "
-      uniform float cam;
-      uniform vec2 pos;
-      uniform float scale;
-      varying vec2 p;
-      varying vec2 c;
+      uniform int cam;
+      uniform ivec2 pos;
+      uniform int scale;
+      varying ivec2 p;
+      varying ivec2 c;
       void main(void) {
         c=gl_Vertex.xy;
-        p=c*scale+pos+vec2(cam,0);
-        gl_Position = vec4(p,0,1);
+        p=c*scale+pos+ivec2(cam,0);
+        gl_Position = ivec4(p,0,1);
       }
     ")
     (compile-shader vertex-shader)
     (printf "v%i\n" (get-shader-iv vertex-shader compile-status))
     (shader-source fragment-shader "
-varying vec2 p;
-varying vec2 c;
-uniform vec2 lpos;
+varying ivec2 p;
+varying ivec2 c;
+uniform ivec2 lpos;
 void main(void) {
-  vec2 ldir=normalize(lpos-p);
-  float cn = max(min(1,dot(ldir,c)),0);
-  gl_FragColor = vec4(
+  ivec2 ldir=normalize(lpos-p);
+  int cn = max(min(1,dot(ldir,c)),0);
+  gl_FragColor = ivec4(
     0,
     0,
     cn,
@@ -148,9 +148,9 @@ void main(void) {
     (link-program program))))
 )
 
-(def x (var intern float 0.0))
+(def x (var intern int 0.0))
 
-(def cam (var intern float 0.0))
+(def cam (var intern int 0.0))
 
 (def timer (fn intern void ((a int))
   (for (i \ 0) (< i (cast (size world) int)) (incv i)
@@ -217,12 +217,12 @@ void main(void) {
       ;(uniform (get-uniform-location program "lpos") (* y (sin x)) (* y (cos x)))
       (uniform (get-uniform-location program "lpos") 0.0 0.0)
       (for (i \ 0) (< i 8) (incv i)
-        (let ((myvar (array-of 2 float)))
+        (let ((myvar (array-of 2 int)))
           (setf ($ myvar 0) (@$ (@:@ (get (@ ($ world i))) pos) 0))
           (setf ($ myvar 1) (@$ (@:@ (get (@ ($ world i))) pos) 1))
           (uniform (get-uniform-location program "pos") (# myvar))
           (uniform (get-uniform-location program "scale") (/ (@:@ (get (@ ($ world i))) r) 2.0))
-          (vertex-pointer 2 float 0 circle)
+          (vertex-pointer 2 int 0 circle)
           (draw-arrays triangle-fan 0 32)))
       (disable-client-state)
       (end)
