@@ -4,6 +4,7 @@
 (import stdlib)
 (import array)
 (import concepts)
+(import concept-defs)
 (import assert)
 
 
@@ -16,6 +17,96 @@
         (let (((uq name) \ (source b)))
           (uql (get-varargs-list (- (arg-count mc) 2)))))))))
 )
+
+(import cstdio)
+(import macros)
+(import stdlib)
+(import array)
+(import concepts)
+(import assert)
+(import algorithms)
+
+(using-namespace std.macros
+(using-namespace std.concepts
+
+(def-concept Addable (refines Type) (T) 
+  (let ((success \ true))
+    (concept-assert (exists-fn mc (qq (uq T) + (uq T) (uq T))) T "+ is not defined over this type")
+    success))
+
+(def-concept Subable (refines Type) (T) 
+  (let ((success \ true))
+    (concept-assert (exists-fn mc (qq (uq T) - (uq T) (uq T))) T "- is not defined over this type")
+    success))
+
+(def-concept Divable (refines Type) (T) 
+  (let ((success \ true))
+    (concept-assert (exists-fn mc (qq (uq T) / (uq T) (uq T))) T "/ is not defined over this type")
+    success))
+
+
+(def-concept-macro + extern ((T Container))
+  (assert-concept (value-type (nullptr (uq T))) Addable)
+    (using-namespace std.macros
+    (qq do
+      (import unistd)
+      (def + (fn extern (retval (uq T)) ((a (uq T)) (b (uq T)))
+        (let ((size \ (size a)))
+          (and (!= (size a) (size b)) (do (fprintf stderr "containers are not of equal size\n") (abort)))
+          (let ((ab \ (begin a))
+                (bb \ (begin b))
+                (ob \ (begin (@ retval)))
+                (ae \ (end a)))
+            (for true (!= ab ae)
+              (do (setv ab (successor ab))
+                  (setv bb (successor bb))
+                  (setv ob (successor ob)))
+              (sink ob (+ (@ (source ab)) (@ (source bb)))))))
+        (return))))))
+
+(def-concept-macro - extern ((T Container))
+  (assert-concept (value-type (nullptr (uq T))) Subable)
+    (using-namespace std.macros
+    (qq do
+      (import unistd)
+      (def - (fn extern (retval (uq T)) ((a (uq T)) (b (uq T)))
+        (let ((size \ (size a)))
+          (and (!= (size a) (size b)) (do (fprintf stderr "containers are not of equal size\n") (abort)))
+          (let ((ab \ (begin a))
+                (bb \ (begin b))
+                (ob \ (begin (@ retval)))
+                (ae \ (end a)))
+            (for true (!= ab ae)
+              (do (setv ab (successor ab))
+                  (setv bb (successor bb))
+                  (setv ob (successor ob)))
+              (sink ob (- (@ (source ab)) (@ (source bb)))))))
+        (return))))))
+
+(def-concept-macro / extern ((T Container))
+  (let ((val-type \ (value-type (nullptr (uq T)))))
+  (assert-concept val-type Divable)
+    (using-namespace std.macros
+    (qq do
+      (import unistd)
+      (def \ (fn extern (retval (uq T)) ((a (uq T)) (b (uq val-type)))
+        (let ((size \ (size a)))
+          (and (!= (size a) (size b)) (do (fprintf stderr "containers are not of equal size\n") (abort)))
+          (let ((ab \ (begin a))
+                (ob \ (begin (@ retval)))
+                (ae \ (end a)))
+            (for true (!= ab ae)
+              (do (setv ab (successor ab))
+                  (setv bb (successor bb))
+                  (setv ob (successor ob)))
+              (sink ob (- (@ (source ab)) (@ (source bb)))))))
+        (return)))))))
+
+))
+#|
+(def main (fn extern-c int (void)
+  (def x (var auto (Array float 2)))
+    (setf ($ x 0) 0.1) (setf ($ x 1) 0.2) (def y (var auto (Array float 2))) (setf ($ y 0) 0.3) (setf ($ y 1) 0.4) (setv x (+ x y)) (printf "%f %f\n" (@$ x 0) (@$ x 1)) 0))
 
 (using-namespace std.macros
 (using-namespace std.concepts
@@ -35,4 +126,4 @@
   (instantiate Array float 2)
   (instantiate + (Array float 2))
 ))
-
+|#

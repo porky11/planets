@@ -8,12 +8,14 @@
   (qq no-op)))
 
 (def def-ptr-macro (macro extern (name linkage type)
-  (qq def (uq name) (macro (uq linkage) ((value (p (uq type))))
-    (qq (uq name) (@ (uq (uq value))))))))
+  (qq using-namespace std.macros
+    (def (uq name) (macro (uq linkage) ((value (p (uq type))))
+      (qq (uq name) (@ (uq (uq value)))))))))
 
 (def def-ptr-macro2 (macro extern (name linkage type)
-  (qq def (uq name) (macro (uq linkage) ((value1 (p (uq type))) (value2 (p (uq type))))
-    (qq (uq name) (@ (uq (uq value1))) (@ (uq (uq value2))))))))
+  (qq using-namespace std.macros
+    (def (uq name) (macro (uq linkage) ((value1 (p (uq type))) (value2 (p (uq type))))
+      (qq (uq name) (@ (uq (uq value1))) (@ (uq (uq value2)))))))))
 
 (def macro-print (macro extern (object)
   (print object)
