@@ -88,13 +88,12 @@
               (sink ob (- (@ (source ab)) (@ (source bb)))))))
         (return))))))
 
-(def-concept-macro / extern ((T Container) (val-type Divable))
-  ;(let ((val-type \ (value-type (nullptr (uq T)))))
-  ;(assert-concept val-type Divable))
+(def-concept-macro / extern ((T Container))
+  (assert-concept (value-type (nullptr (uq T))) Divable)
     (using-namespace std.macros
     (qq do
       (import unistd)
-      (def / (fn extern (retval (uq T)) ((a (uq T)) (b (uq val-type)))
+      (def / (fn extern (retval (uq T)) ((a (uq T)) (b (value-type (nullptr (uq T)))))
         (let ((size \ (size a)))
           (let ((ab \ (begin a))
                 (ob \ (begin (@ retval)))
@@ -105,13 +104,12 @@
               (sink ob (/ (@ (source ab)) b)))))
         (return))))))
 
-(def-concept-macro * extern ((T Container) (val-type Mulable))
-  ;(let ((val-type \ (value-type (nullptr (uq T)))))
-  ;(assert-concept val-type Mulable))
+(def-concept-macro * extern ((T Container))
+  (assert-concept (value-type (nullptr (uq T))) Mulable)
     (using-namespace std.macros
     (qq do
       (import unistd)
-      (def * (fn extern (retval (uq T)) ((a (uq T)) (b (uq val-type)))
+      (def * (fn extern (retval (uq T)) ((a (uq T)) (b (value-type (nullptr (uq T)))))
         (let ((size \ (size a)))
           (let ((ab \ (begin a))
                 (ob \ (begin (@ retval)))

@@ -21,8 +21,8 @@
   (instantiate Array float 2)
   (instantiate + (Array float 2))
   (instantiate - (Array float 2))
-  (instantiate * (Array float 2) float)
-  (instantiate / (Array float 2) float)
+  (instantiate * (Array float 2))
+  (instantiate / (Array float 2))
 )
 
 (def Planet (struct intern
@@ -49,9 +49,13 @@
 (def collide (fn intern void ((p0 (ref Planet)) (p1 (ref Planet)))
   (let ((disvec (Array float 2) (- (@:@ p0 pos) (@:@ p1 pos)))
         (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
-        (dir \ (/ disvec dis2))
         (dis \ (sqrt dis2))
-        (acc \ (* disvec (/ (- dis (+ (@:@ p0 r) (@:@ p1 r))) (* dis 8.0)))))
+        (rs \ (+ (@:@ p0 r) (@:@ p1 r)))
+        (acc \ (/ disvec (* 100000.0 (* dis dis2)))))
+    (printf "%f\n" (@$ acc 0))
+    (if (< dis (* 1.0 rs))
+        (incf (# acc) (* disvec (/ (- dis rs) (* dis 2.0))))
+        0)
     (incf (vel p1) acc)
     (decf (vel p0) acc))
   (return)))
@@ -98,8 +102,8 @@
 (def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
   (let ((i int 0))
     (for true (< i 32) (incv i)
-      (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/' (pi) 16) i)))
-      (setf ($ (@ ($ (@ circle) i)) 1) (sin (*' (/' (pi) 16) i)))))
+      (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/ (pi) 16.0) i)))
+      (setf ($ (@ ($ (@ circle) i)) 1) (sin (*' (/ (pi) 16.0) i)))))
       (return))))
 
 
@@ -127,19 +131,19 @@
     (compile-shader vertex-shader)
     (printf "v%i\n" (get-shader-iv vertex-shader compile-status))
     (shader-source fragment-shader "
-varying vec2 p;
-varying vec2 c;
-uniform vec2 lpos;
-void main(void) {
-  vec2 ldir=normalize(lpos-p);
-  float cn = max(min(1,dot(ldir,c)),0);
-  gl_FragColor = vec4(
-    0,
-    0,
-    cn,
-    1
-  );
-}
+      varying vec2 p;
+      varying vec2 c;
+      uniform vec2 lpos;
+      void main(void) {
+        vec2 ldir=normalize(lpos-p);
+        float cn = max(min(1,dot(ldir,c)),0);
+        gl_FragColor = vec4(
+          0,
+          0,
+          cn,
+          1
+        );
+      }
 ")
     (compile-shader fragment-shader)
     (printf "f%i\n" (get-shader-iv fragment-shader compile-status))
@@ -192,9 +196,9 @@ void main(void) {
             (up-planet (UniquePtr Planet)))
         (setf ($ (@:@ planet pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
         (setf ($ (@:@ planet pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ planet vel) 0) (/ (cos (*' (/ (pi) 4.0) i)) 50000.0))
-        (setf ($ (@:@ planet vel) 1) (/ (sin (*' (/ (pi) 4.0) i)) 50000.0))
-        (setf (:@ planet r) (*' 0.01 (+ 10 i)))
+        (setf ($ (@:@ planet vel) 0) 0.0)
+        (setf ($ (@:@ planet vel) 1) 0.0)
+        (setf (:@ planet r) (*' 0.01 (+ 5 i)))
         (init up-planet planet)
         (push-back world (move up-planet))))
   )
@@ -221,7 +225,7 @@ void main(void) {
           (setf ($ myvar 0) (@$ (@:@ (get (@ ($ world i))) pos) 0))
           (setf ($ myvar 1) (@$ (@:@ (get (@ ($ world i))) pos) 1))
           (uniform (get-uniform-location program "pos") (# myvar))
-          (uniform (get-uniform-location program "scale") (/ (@:@ (get (@ ($ world i))) r) 2.0))
+          (uniform (get-uniform-location program "scale") (/ (@:@ (get (@ ($ world i))) r) 1.0))
           (vertex-pointer 2 float 0 circle)
           (draw-arrays triangle-fan 0 32)))
       (disable-client-state)
