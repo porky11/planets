@@ -78,6 +78,11 @@
       (implement Swappable (UniquePtr (uq T)))
       (instantiate Vector (UniquePtr (uq T)))))
 
+  (def-type-macro Cluster)
+  (def-concept-macro Cluster intern ((T Type))
+    (qq do
+      (def (Cluster (uq T))
+        (struct intern ((vector (Vector (uq T))))))))
 
 
   (instantiate Ball float 2)
@@ -87,7 +92,7 @@
   (def-ptr-macro2 collide intern (Ball float 2))
   (instantiate UniquePtr (Ball float 2))
   (instantiate whatever (Ball float 2))
-
+  
 
 ))
 
