@@ -6,6 +6,7 @@
 (import sequence-math)
 
 (import utility)
+(import stdlib)
 (import cstdio)
 (import math)
 (import unique-ptr)
@@ -172,17 +173,17 @@
 (def cam (var intern float 0.0))
 
 (def timer (fn intern void ((a int))
-  (for (i \ 0) (< i (cast (size world) int)) (incv i)
-    (let ((Ball \ (get (@ ($ world i)))))
+  (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
+    (let ((Ball \ (get (@ (source b)))))
       (incf ($ (@:@ Ball pos) 0) (@$ (@:@ Ball vel) 0))
       (incf ($ (@:@ Ball pos) 1) (@$ (@:@ Ball vel) 1))
       (mulf ($ (@:@ Ball vel) 0) 0.95)
       (mulf ($ (@:@ Ball vel) 1) 0.95)
       ))
-  (for (i \ 0) (< i (cast (size world) int)) (incv i)
-    (let ((p0 \ (get (@ ($ world i)))))
-        (for (j \ (+ i 1)) (< j (cast (size world) int)) (incv j)
-          (let ((p1 \ (get (@ ($ world j)))))
+  (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
+    (let ((p0 \ (get (@ (source b)))))
+      (for ((b2 \ (successor b)) (e \ (end world))) (< b2 e) (setv b2 (successor b2))
+          (let ((p1 \ (get (@ (source b2)))))
             (collide p0 p1) ))))
     (glutPostRedisplay)
     (glutTimerFunc (/ 1000 32) (# timer) 0)
@@ -194,7 +195,7 @@
   
 
 
-  (init world 8)
+  (init world 512)
 
   (init (# argc) argv)
   (init-display-mode (| depth (| single rgba)))
@@ -217,13 +218,13 @@
         (init up-Ball Ball)
         (push-back world (move up-Ball))))
   )
-  (ignore idle-func (void)
-    (timer 0))
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
       (incf (# cam) (cond ((= key (@$ "a" 0)) 0.02) ((= key (@$ "d" 0)) -0.02) (true 0.00)))
       (return)))
+
+
   (display-func (void)
     (using-namespace gl
     (using-namespace std
