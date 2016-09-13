@@ -26,7 +26,6 @@
   (fn extern-c void ((mode uint))))
 (def glutPostRedisplay
   (fn extern-c void (void)))
-
 (def glutKeyboardFunc
   (fn extern-c void ((func (p (fn void ((key char) (x int) (y int))))))))
 

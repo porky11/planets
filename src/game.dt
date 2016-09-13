@@ -1,99 +1,109 @@
+  
 (import gl)
 (import glut)
 (import spatial)
 (import util)
+(import sequence-math)
 
+(import utility)
 (import cstdio)
 (import math)
 (import unique-ptr)
+(import macros)
 (import concept-defs)
+(import concepts)
 (import derivations)
 (import array)
 (import vector)
-(import sequence-math)
 (import assert)
- 
+
+
+
+
+(using-namespace std.macros
 (using-namespace std.concepts
-  (implement Addable float)
-  (implement Subable float)
-  (implement Mulable float)
-  (implement Divable float)
+  (implement BasicMath float)
+
   (instantiate Array float 2)
   (instantiate + (Array float 2))
   (instantiate - (Array float 2))
   (instantiate * (Array float 2))
   (instantiate / (Array float 2))
-)
 
-(def Planet (struct intern
-  ((pos (Array float 2))
-   (vel (Array float 2))
-   (r float))))
 
+  (def-type-macro2 Ball)
+  (def-concept-macro Ball intern ((T Type) (N Value))
+    (qq do
+      (def (Ball (uq T) (uq N))
+        (struct intern
+          ((pos (Array (uq T) (uq N)))
+           (vel (Array (uq T) (uq N)))
+           (r (uq T)))))
+      (def = (fn intern bool ((p0 (ref (Ball (uq T) (uq N)))) (p1 (ref (Ball (uq T) (uq N)))))
+        (p= p0 p1)))
+      (def != (fn intern bool ((p0 (ref (Ball (uq T) (uq N)))) (p1 (ref (Ball (uq T) (uq N)))))
+        (not (p= p0 p1))))
+      (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
+        (qq : (uq (uq Ball)) pos)))
+      (def vel (macro intern ((Ball (Ball (uq T) (uq N))))
+        (qq : (uq (uq Ball)) vel)))
+      (implement Struct (Ball (uq T) (uq N)))
+      (implement EqualityComparable (Ball (uq T) (uq N)))))
+
+  (def-concept-macro collide intern ((T Type))
+    (qq using-namespace std
+      (def collide (fn intern void ((p0 (ref (uq T))) (p1 (ref (uq T))))
+        (let ((disvec (Array float 2) (- (@:@ p0 pos) (@:@ p1 pos)))
+              (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
+              (dis \ (sqrt dis2))
+              (rs \ (+ (@:@ p0 r) (@:@ p1 r)))
+              (acc \ (/ disvec (* 100000.0 (* dis dis2)))))
+          ;(printf "%f\n" (@$ acc 0))
+          (if (< dis (* 1.0 rs))
+              (incf (# acc) (* disvec (/ (- dis rs) (* dis 2.0))))
+              0)
+          (incf (vel p1) acc)
+          (decf (vel p0) acc))
+        (return)))))
+  (def-concept-macro whatever intern ((T Type))
+    (qq do
+      (def = (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
+                              (p1 (ref (const (UniquePtr (uq T))))))
+        (p= p0 p1)))
+      (def != (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
+                               (p1 (ref (const (UniquePtr (uq T))))))
+        (not (p= p0 p1))))
+      (implement EqualityComparable (UniquePtr (uq T)))
+      (instantiate swap (UniquePtr (uq T)))
+      (implement Swappable (UniquePtr (uq T)))
+      (instantiate Vector (UniquePtr (uq T)))))
+
+
+
+  (instantiate Ball float 2)
+  (def-ptr-macro pos intern (Ball float 2))
+  (def-ptr-macro vel intern (Ball float 2))
+  (instantiate collide (Ball float 2))
+  (def-ptr-macro2 collide intern (Ball float 2))
+  (instantiate UniquePtr (Ball float 2))
+  (instantiate whatever (Ball float 2))
+
+
+))
+
+
+#|
 (using-namespace std.macros
-(def pos (macro intern ((planet Planet))
-  (qq : (uq planet) pos)))
-(def vel (macro intern ((planet Planet))
-  (qq : (uq planet) vel)))
-(def-ptr-macro pos intern Planet)
-(def-ptr-macro vel intern Planet)
 ;;(macro-print ok-ptr-macro)
 
 ;;(def-ptr-macro2 + intern (Array float 2))
 ;;(macro-print ok-ptr-macro2)
 
 )
+|#
 
 
-(using-namespace std
-(def collide (fn intern void ((p0 (ref Planet)) (p1 (ref Planet)))
-  (let ((disvec (Array float 2) (- (@:@ p0 pos) (@:@ p1 pos)))
-        (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
-        (dis \ (sqrt dis2))
-        (rs \ (+ (@:@ p0 r) (@:@ p1 r)))
-        (acc \ (/ disvec (* 100000.0 (* dis dis2)))))
-    (printf "%f\n" (@$ acc 0))
-    (if (< dis (* 1.0 rs))
-        (incf (# acc) (* disvec (/ (- dis rs) (* dis 2.0))))
-        0)
-    (incf (vel p1) acc)
-    (decf (vel p0) acc))
-  (return)))
-)
-(def-ptr-macro2 collide intern Planet)
-
-(def = (fn intern bool ((p0 Planet) (p1 Planet))
-  (and (= (@: p0 pos) (@: p1 pos))
-       (= (@: p0 vel) (@: p1 vel)))))
-
-(def != (fn intern bool ((p0 Planet) (p1 Planet))
-  (or (!= (@: p0 pos) (@: p1 pos))
-      (!= (@: p0 vel) (@: p1 vel)))))
-
-(using-namespace std.concepts
-  (implement Type Planet)
-  (implement Struct Planet)
-  (implement EqualityComparable Planet)
-  (instantiate UniquePtr Planet)
-)
-
-
-(def = (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
-                        (p1 (ref (const (UniquePtr Planet)))))
-  (p= p0 p1)))
-
-
-(def != (fn intern bool ((p0 (ref (const (UniquePtr Planet))))
-                        (p1 (ref (const (UniquePtr Planet)))))
-  (not (p= p0 p1))))
-
-(using-namespace std.concepts
-  (implement EqualityComparable (UniquePtr Planet))
-  (instantiate swap (UniquePtr Planet))
-  (implement Swappable (UniquePtr Planet))
-  (instantiate Vector (UniquePtr Planet)))
-
-(def world (var intern (Vector (UniquePtr Planet))))
+(def world (var intern (Vector (UniquePtr (Ball float 2)))))
 
 (def pi (macro intern (void)
   (q 3.14159265358979323846)))
@@ -158,11 +168,11 @@
 
 (def timer (fn intern void ((a int))
   (for (i \ 0) (< i (cast (size world) int)) (incv i)
-    (let ((planet \ (get (@ ($ world i)))))
-      (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
-      (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))
-      (mulf ($ (@:@ planet vel) 0) 0.95)
-      (mulf ($ (@:@ planet vel) 1) 0.95)
+    (let ((Ball \ (get (@ ($ world i)))))
+      (incf ($ (@:@ Ball pos) 0) (@$ (@:@ Ball vel) 0))
+      (incf ($ (@:@ Ball pos) 1) (@$ (@:@ Ball vel) 1))
+      (mulf ($ (@:@ Ball vel) 0) 0.95)
+      (mulf ($ (@:@ Ball vel) 1) 0.95)
       ))
   (for (i \ 0) (< i (cast (size world) int)) (incv i)
     (let ((p0 \ (get (@ ($ world i)))))
@@ -192,15 +202,15 @@
 
   (using-namespace std
     (for (i \ 0) (< i 8) (incv i)
-      (let ((planet (p Planet) (malloc' 1 Planet))
-            (up-planet (UniquePtr Planet)))
-        (setf ($ (@:@ planet pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ planet pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ planet vel) 0) 0.0)
-        (setf ($ (@:@ planet vel) 1) 0.0)
-        (setf (:@ planet r) (*' 0.01 (+ 5 i)))
-        (init up-planet planet)
-        (push-back world (move up-planet))))
+      (let ((Ball \ (malloc' 1 (Ball float 2)))
+            (up-Ball (UniquePtr (Ball float 2))))
+        (setf ($ (@:@ Ball pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
+        (setf ($ (@:@ Ball pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
+        (setf ($ (@:@ Ball vel) 0) 0.0)
+        (setf ($ (@:@ Ball vel) 1) 0.0)
+        (setf (:@ Ball r) (*' 0.01 (+ 5 i)))
+        (init up-Ball Ball)
+        (push-back world (move up-Ball))))
   )
   (ignore idle-func (void)
     (timer 0))

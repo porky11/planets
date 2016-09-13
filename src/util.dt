@@ -1,6 +1,35 @@
 (module util)
 
 (import macros)
+(import cstdlib)
+
+#|
+@macro mexit
+
+Stops the compiliation of program.
+Useful for debug reasons, when you know some error appears before this macro is expanded.
+
+|#
+(using-namespace std
+(def mexit (macro extern (void)
+  (exit 0)
+  (q 0)))
+)
+
+
+(def def-type-macro2
+  (macro extern (name)
+    (let ((buf (array-of 250 char)))
+      (sprintf buf "\"%s\"" (@:@ name token-str))
+      (let ((string \ (std.macros.mnfv mc buf)))
+        (std.macros.qq do
+          (def (uq name)
+            (macro extern (T U)
+              (let ((typename (array-of 250 char)))
+                (and (not (make-type-string mc (uq string) T U typename))
+                     (return T))
+                (def n (var auto (p DNode) (mnfv mc typename)))
+(return n)))))))))
 
 (using-namespace std.macros
 
