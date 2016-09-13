@@ -3,6 +3,7 @@
 (import spatial)
 (import util)
 
+(import stdlib)
 (import cstdio)
 (import math)
 (import unique-ptr)
@@ -142,11 +143,10 @@ void main(void) {
         (push-back world (move up-planet)))))
 
   (idle-func (void)
-    (let ((e \ (end world)))
-      (for (b \ (begin world)) (< b e) (setv b (successor b))
-        (let ((planet (p (UniquePtr Planet)) (source b)))
-          (incf ($ (@:@ (@ planet) pos) 0) (@$ (@:@ (@ planet) vel) 0))
-          (incf ($ (@:@ (@ planet) pos) 1) (@$ (@:@ (@ planet) vel) 1)))))
+    (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
+      (let ((planet (p Planet) (get (@ (source b)))))
+        (incf ($ (@:@ planet pos) 0) (@$ (@:@ planet vel) 0))
+        (incf ($ (@:@ planet pos) 1) (@$ (@:@ planet vel) 1))))
     (glutPostRedisplay)
     (return))
 
