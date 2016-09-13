@@ -76,7 +76,7 @@
               (acc \ (/ disvec (* 500000.0 (* dis dis2)))))
           ;(printf "%f\n" (@$ acc 0))
           (if (< dis (* 1.0 rs))
-              (incf (# acc) (* disvec (/ (- dis rs) (* dis 2.0))))
+              (incf (# acc) (* disvec (/ (- dis rs) (* dis 20000.0))))
               0)
           (incf (vel p1) acc)
           (decf (vel p0) acc))
@@ -134,12 +134,12 @@
   (def-ptr-macro2 collide intern (Ball float 2))
   (instantiate UniquePtr (Ball float 2))
   (instantiate whatever (Ball float 2))
-  
+
   (implement Type (p (Ball float 2)))
   (instantiate Connection (p (Ball float 2)))
   
   (instantiate Vector (Connection (p (Ball float 2))))
-  
+
 
 ))
 
@@ -178,35 +178,26 @@
 
 (def init-world (fn intern void (void)
   (using-namespace std
-    (for (i \ 0) (< i 8) (incv i)
-      (let ((Ball \ (malloc' 1 (Ball float 2)))
-            (up-Ball (UniquePtr (Ball float 2))))
-        (setf ($ (@:@ Ball pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ Ball pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ Ball vel) 0) 0.0)
-        (setf ($ (@:@ Ball vel) 1) 0.0)
-        (setf (:@ Ball r) (*' 0.01 (+ 5 i)))
-        (init up-Ball Ball)
-        (push-back world (move up-Ball))))
-    (let ((conn2 (Connection (p (Ball float 2)))
-                 ((object0 (get (@$ world 1)))
-                  (object1 (get (@$ world 2)))
-                  (length 0.4)
-                  (strength 0.25)))
-          (conn1 (Connection (p (Ball float 2)))
-                 ((object0 (get (@$ world 0)))
-                  (object1 (get (@$ world 4)))
-                  (length 0.4)
-                  (strength 0.05)))
-          (conn3 (Connection (p (Ball float 2)))
-                 ((object0 (get (@$ world 3)))
-                  (object1 (get (@$ world 7)))
-                  (length 0.4)
-                  (strength 0.25))))
-      (push-back connections conn3)
-      (push-back connections conn1)
-      (push-back connections conn2))
-  )
+    (for ((i \ 0)
+          (ball \ (malloc' 1 (Ball float 2)))
+          (up-ball (UniquePtr (Ball float 2)))
+          (last \ (nullptr (Ball float 2))))
+         (< i 1) (incv i)
+      (setf ($ (@:@ ball pos) 0) (*' 1.0 i))
+      (setf ($ (@:@ ball pos) 1) 0.0)
+      (setf ($ (@:@ ball vel) 0) 0.0)
+      (setf ($ (@:@ ball vel) 1) 0.0)
+      (setf (:@ ball r) (*' 0.01 (+ i 12)))
+      (init up-ball ball)
+      (push-back world (move up-ball))
+      (when (not (null last))
+        (let ((conn (Connection (p (Ball float 2)))
+                    ((object0 last)
+                     (object1 ball)
+                     (length 0.2)
+                     (strength 0.0025))))
+          (push-back connections conn)))
+  ))
   
   (setv player (get (@$ world 0)))
   (return)
@@ -267,9 +258,9 @@
   (incf ($ (@:@ player vel) 1) (cond ((is-pressed (@$ "w" 0)) 0.002)
                                      ((is-pressed (@$ "s" 0)) -0.002)
                                      (true 0.00)))
-  (in de connections
+  (ignore in de connections
     (act (@ de)))
-  (in a world
+  (ignore in a world
     (let ((Ball \ (get (@ a))))
       (incf ($ (@:@ Ball pos) 0) (@$ (@:@ Ball vel) 0))
       (incf ($ (@:@ Ball pos) 1) (@$ (@:@ Ball vel) 1))
@@ -293,6 +284,8 @@
 
   (init world 512)
   (init connections 512)
+  (init-world)
+
 
   (init (# argc) argv)
   (init-display-mode (| depth (| single rgba)))
@@ -303,7 +296,6 @@
   (init-program)
   (init-circle (# circle))
 
-  (init-world)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
@@ -324,15 +316,12 @@
       (incf (# x) 0.1)
       (def y (var auto \ (/ (sqrt x) 10.0)))
       (uniform (get-uniform-location program "lpos") (* 0.1 (sin x)) (* 0.1 (cos x)))
-      ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
-      (for (i \ 0) (< i 8) (incv i)
-        (let ((myvar (array-of 2 float)))
-          (setf ($ myvar 0) (@$ (@:@ (get (@ ($ world i))) pos) 0))
-          (setf ($ myvar 1) (@$ (@:@ (get (@ ($ world i))) pos) 1))
-          (uniform (get-uniform-location program "pos") (# myvar))
-          (uniform (get-uniform-location program "scale") (/ (@:@ (get (@ ($ world i))) r) 1.0))
-          (vertex-pointer 2 float 0 circle)
-          (draw-arrays triangle-fan 0 32)))
+      (uniform (get-uniform-location program "lpos") 0.0 0.0)
+      (in a world
+        (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
+        (uniform (get-uniform-location program "scale") (@:@ (get (@ a)) r))
+        (vertex-pointer 2 float 0 circle)
+        (draw-arrays triangle-fan 0 32))
       (disable-client-state)
       (end)
       (flush)
