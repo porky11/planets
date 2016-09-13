@@ -12,8 +12,20 @@ Useful for debug reasons, when you know some error appears before this macro is 
 |#
 (using-namespace std
 (def mexit (macro extern (void)
-  (exit 0)
+  (exit 1)
   (q 0)))
+)
+
+(using-namespace std.macros
+(def in (macro extern (name value ...)
+  (let ((en \ (make-gensym-var-node mc))
+        (bn \ (make-gensym-var-node mc))
+        (val \ (make-gensym-var-node mc)))
+    (qq for ( #| ((uq val) \ (move (uq value))) |# ((uq bn) \ (begin (uq value))) ((uq en) \ (end (uq value))))
+            (< (uq bn) (uq en))
+            (setv (uq bn) (successor (uq bn)))
+      (let (((uq name) \ (source (uq bn))))
+        (uql (get-varargs-list (- (arg-count mc) 2))))))))
 )
 
 

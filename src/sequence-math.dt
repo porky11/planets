@@ -1,22 +1,5 @@
 (module sequence-math)
 
-(import macros)
-(import stdlib)
-(import array)
-(import concepts)
-(import concept-defs)
-(import assert)
-
-
-(using-namespace std.macros
-(def in (macro extern (name value ...)
-  (let ((en \ (make-gensym-var-node mc))
-        (bn \ (make-gensym-var-node mc)))
-    (qq let (((uq en) \ (end (uq value))))
-      (for ((uq bn) \ (begin world)) (< (uq bn) (uq en)) (setv (uq bn) (successor (uq bn)))
-        (let (((uq name) \ (source b)))
-          (uql (get-varargs-list (- (arg-count mc) 2)))))))))
-)
 
 (import cstdio)
 (import macros)
