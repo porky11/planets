@@ -179,15 +179,15 @@
 (def init-world (fn intern void (void)
   (using-namespace std
     (for ((i \ 0)
-          (ball \ (malloc' 1 (Ball float 2)))
+          (ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
           (up-ball (UniquePtr (Ball float 2)))
-          (last \ (nullptr (Ball float 2))))
-         (< i 1) (incv i)
+          (last (p (Ball float 2)) (nullptr (Ball float 2))))
+         (< i 8) (incv i)
       (setf ($ (@:@ ball pos) 0) (*' 1.0 i))
       (setf ($ (@:@ ball pos) 1) 0.0)
       (setf ($ (@:@ ball vel) 0) 0.0)
       (setf ($ (@:@ ball vel) 1) 0.0)
-      (setf (:@ ball r) (*' 0.01 (+ i 12)))
+      (setf (:@ ball r) (*' 0.02 (+ i 1)))
       (init up-ball ball)
       (push-back world (move up-ball))
       (when (not (null last))
@@ -232,8 +232,8 @@
         vec2 ldir=normalize(lpos-p);
         float cn = max(min(1,dot(ldir,c)),0);
         gl_FragColor = vec4(
-          0,
-          0,
+          0.3,
+          0.3,
           cn,
           1
         );
@@ -284,7 +284,6 @@
 
   (init world 512)
   (init connections 512)
-  (init-world)
 
 
   (init (# argc) argv)
@@ -296,6 +295,7 @@
   (init-program)
   (init-circle (# circle))
 
+  (init-world)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
@@ -316,7 +316,7 @@
       (incf (# x) 0.1)
       (def y (var auto \ (/ (sqrt x) 10.0)))
       (uniform (get-uniform-location program "lpos") (* 0.1 (sin x)) (* 0.1 (cos x)))
-      (uniform (get-uniform-location program "lpos") 0.0 0.0)
+      ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
         (uniform (get-uniform-location program "scale") (@:@ (get (@ a)) r))
