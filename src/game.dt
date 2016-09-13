@@ -76,7 +76,7 @@
               (acc \ (/ disvec (* 500000.0 (* dis dis2)))))
           ;(printf "%f\n" (@$ acc 0))
           (if (< dis (* 1.0 rs))
-              (incf (# acc) (* disvec (/ (- dis rs) (* dis 20000.0))))
+              (incf (# acc) (* disvec (/ (- dis rs) (* dis 8.0))))
               0)
           (incf (vel p1) acc)
           (decf (vel p0) acc))
@@ -176,30 +176,48 @@
 
 (def circle (var intern (array-of 32 (array-of 2 float))))
 
-(def init-world (fn intern void (void)
+(def max (fn intern int ((x int) (y int))
+  (if (> x y) x y)))
+(def min (fn intern int ((x int) (y int))
+  (if (< x y) x y)))
+
+
+
+(def init-world-snake (fn intern void (void)
   (using-namespace std
-    (for ((i \ 0)
-          (ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
-          (up-ball (UniquePtr (Ball float 2)))
-          (last (p (Ball float 2)) (nullptr (Ball float 2))))
-         (< i 8) (incv i)
-      (setf ($ (@:@ ball pos) 0) (*' 1.0 i))
+   #| (ignore for (i \ 0) 
+         (< i 15) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf ($ (@:@ ball pos) 0) (- (/ (cos (*' (/ (pi) 4.0) i)) 5.0) 2.0))
+      (setf ($ (@:@ ball pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
+      (setf ($ (@:@ ball vel) 0) 0.0)
+      (setf ($ (@:@ ball vel) 1) 0.0)
+      (setf (:@ ball r) 0.1)
+      (init up-ball ball)
+      (push-back world (move up-ball)))) |#
+    (for ((i \ 0) (last \ (nullptr (Ball float 2))))
+         (< i 15) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf ($ (@:@ ball pos) 0) (*' 0.1 i))
       (setf ($ (@:@ ball pos) 1) 0.0)
       (setf ($ (@:@ ball vel) 0) 0.0)
       (setf ($ (@:@ ball vel) 1) 0.0)
-      (setf (:@ ball r) (*' 0.02 (+ i 1)))
+      (setf (:@ ball r) (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))
       (init up-ball ball)
       (push-back world (move up-ball))
       (when (not (null last))
         (let ((conn (Connection (p (Ball float 2)))
                     ((object0 last)
                      (object1 ball)
-                     (length 0.2)
-                     (strength 0.0025))))
+                     (length 0.25)
+                     (strength 0.25))))
           (push-back connections conn)))
-  ))
+     (setv last ball)
+  )))
   
-  (setv player (get (@$ world 0)))
+  (setv player (get (@$ world 7)))
   (return)
 ))
 
@@ -232,9 +250,9 @@
         vec2 ldir=normalize(lpos-p);
         float cn = max(min(1,dot(ldir,c)),0);
         gl_FragColor = vec4(
-          0.3,
-          0.3,
+          0.0,
           cn,
+          0.0,
           1
         );
       }
@@ -252,20 +270,18 @@
 
 (def timer (fn intern void ((a int))
   ;(incf (# cam) (cond ((is-pressed (@$ "a" 0)) 0.02) ((is-pressed (@$ "d" 0)) -0.02) (true 0.00)))
-  (incf ($ (@:@ player vel) 0) (cond ((is-pressed (@$ "a" 0)) -0.002)
-                                     ((is-pressed (@$ "d" 0)) 0.002) 
+  (incf ($ (@:@ player vel) 0) (cond ((is-pressed (@$ "a" 0)) -0.01)
+                                     ((is-pressed (@$ "d" 0)) 0.01) 
                                      (true 0.00)))
-  (incf ($ (@:@ player vel) 1) (cond ((is-pressed (@$ "w" 0)) 0.002)
-                                     ((is-pressed (@$ "s" 0)) -0.002)
+  (incf ($ (@:@ player vel) 1) (cond ((is-pressed (@$ "w" 0)) 0.01)
+                                     ((is-pressed (@$ "s" 0)) -0.01)
                                      (true 0.00)))
-  (ignore in de connections
+  (in de connections
     (act (@ de)))
-  (ignore in a world
+  (in a world
     (let ((Ball \ (get (@ a))))
-      (incf ($ (@:@ Ball pos) 0) (@$ (@:@ Ball vel) 0))
-      (incf ($ (@:@ Ball pos) 1) (@$ (@:@ Ball vel) 1))
-      (mulf ($ (@:@ Ball vel) 0) 0.95)
-      (mulf ($ (@:@ Ball vel) 1) 0.95)
+      (incf (:@ Ball pos) (@:@ Ball vel))
+      (mulf (:@ Ball vel) 0.95)
       ))
   (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
     (let ((p0 \ (get (@ (source b)))))
@@ -315,7 +331,7 @@
       (use-program program)
       (incf (# x) 0.1)
       (def y (var auto \ (/ (sqrt x) 10.0)))
-      (uniform (get-uniform-location program "lpos") (* 0.1 (sin x)) (* 0.1 (cos x)))
+      (uniform (get-uniform-location program "lpos") (* 0.25 (sin x)) (* 0.25 (cos x)))
       ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
