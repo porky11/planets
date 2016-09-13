@@ -28,6 +28,8 @@
   (fn extern-c void (void)))
 (def glutKeyboardFunc
   (fn extern-c void ((func (p (fn void ((key char) (x int) (y int))))))))
+(def glutKeyboardUpFunc
+  (fn extern-c void ((func (p (fn void ((key char) (x int) (y int))))))))
 
 
 (namespace glut
