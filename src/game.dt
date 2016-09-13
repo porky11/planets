@@ -144,6 +144,7 @@
 ))
 
 
+
 #|
 (using-namespace std.macros
 ;;(macro-print ok-ptr-macro)
@@ -174,6 +175,42 @@
 
 
 (def circle (var intern (array-of 32 (array-of 2 float))))
+
+(def init-world (fn intern void (void)
+  (using-namespace std
+    (for (i \ 0) (< i 8) (incv i)
+      (let ((Ball \ (malloc' 1 (Ball float 2)))
+            (up-Ball (UniquePtr (Ball float 2))))
+        (setf ($ (@:@ Ball pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
+        (setf ($ (@:@ Ball pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
+        (setf ($ (@:@ Ball vel) 0) 0.0)
+        (setf ($ (@:@ Ball vel) 1) 0.0)
+        (setf (:@ Ball r) (*' 0.01 (+ 5 i)))
+        (init up-Ball Ball)
+        (push-back world (move up-Ball))))
+    (let ((conn2 (Connection (p (Ball float 2)))
+                 ((object0 (get (@$ world 1)))
+                  (object1 (get (@$ world 2)))
+                  (length 0.4)
+                  (strength 0.25)))
+          (conn1 (Connection (p (Ball float 2)))
+                 ((object0 (get (@$ world 0)))
+                  (object1 (get (@$ world 4)))
+                  (length 0.4)
+                  (strength 0.05)))
+          (conn3 (Connection (p (Ball float 2)))
+                 ((object0 (get (@$ world 3)))
+                  (object1 (get (@$ world 7)))
+                  (length 0.4)
+                  (strength 0.25))))
+      (push-back connections conn3)
+      (push-back connections conn1)
+      (push-back connections conn2))
+  )
+  
+  (setv player (get (@$ world 0)))
+  (return)
+))
 
 (using-namespace gl
 (def program (var intern Program))
@@ -266,38 +303,7 @@
   (init-program)
   (init-circle (# circle))
 
-  (using-namespace std
-    (for (i \ 0) (< i 8) (incv i)
-      (let ((Ball \ (malloc' 1 (Ball float 2)))
-            (up-Ball (UniquePtr (Ball float 2))))
-        (setf ($ (@:@ Ball pos) 0) (/ (cos (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ Ball pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
-        (setf ($ (@:@ Ball vel) 0) 0.0)
-        (setf ($ (@:@ Ball vel) 1) 0.0)
-        (setf (:@ Ball r) (*' 0.01 (+ 5 i)))
-        (init up-Ball Ball)
-        (push-back world (move up-Ball))))
-    (let ((conn2 (Connection (p (Ball float 2)))
-                 ((object0 (get (@$ world 1)))
-                  (object1 (get (@$ world 2)))
-                  (length 0.4)
-                  (strength 0.25)))
-          (conn1 (Connection (p (Ball float 2)))
-                 ((object0 (get (@$ world 0)))
-                  (object1 (get (@$ world 4)))
-                  (length 0.4)
-                  (strength 0.05)))
-          (conn3 (Connection (p (Ball float 2)))
-                 ((object0 (get (@$ world 3)))
-                  (object1 (get (@$ world 7)))
-                  (length 0.4)
-                  (strength 0.25))))
-      (push-back connections conn3)
-      (push-back connections conn1)
-      (push-back connections conn2))
-  )
-  
-  (setv player (get (@$ world 0)))
+  (init-world)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
