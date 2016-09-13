@@ -324,7 +324,7 @@
       (incf (# x) 0.1)
       (def y (var auto \ (/ (sqrt x) 10.0)))
       (uniform (get-uniform-location program "lpos") (* 0.1 (sin x)) (* 0.1 (cos x)))
-      (uniform (get-uniform-location program "lpos") 0.0 0.0)
+      ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
         (uniform (get-uniform-location program "scale") (@:@ (get (@ a)) r))
