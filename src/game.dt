@@ -181,6 +181,47 @@
 (def min (fn intern int ((x int) (y int))
   (if (< x y) x y)))
 
+(def init-world (fn intern void (void)
+  (using-namespace std
+   (for (i \ 0) 
+         (< i 15) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf (:@ ball pos)
+            ((elements (array-of 2 float
+               (array (- (/ (cos (*' (/ (pi) 4.0) i)) 5.0) 2.0)
+                      (/ (sin (*' (/ (pi) 4.0) i)) 5.0))))))
+      (setf (:@ ball vel)
+            ((elements (array-of 2 float (array 0.0 0.0)))))
+      (setf (:@ ball r) 0.1)
+      (init up-ball ball)
+      (push-back world (move up-ball))))       #|
+
+    (ignore for ((i \ 0) (last \ (nullptr (Ball float 2))))
+         (< i 15) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf ($ (@:@ ball pos) 0) (*' 0.1 i))
+      (setf ($ (@:@ ball pos) 1) 0.0)
+      (setf ($ (@:@ ball vel) 0) 0.0)
+      (setf ($ (@:@ ball vel) 1) 0.0)
+      (setf (:@ ball r) (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))
+      (init up-ball ball)
+      (push-back world (move up-ball))
+      (when (not (null last))
+        (let ((conn (Connection (p (Ball float 2)))
+                    ((object0 last)
+                     (object1 ball)
+                     (length 0.25)
+                     (strength 0.25))))
+          (push-back connections conn)))
+     (setv last ball)
+  ))  |# )
+  
+  (setv player (get (@$ world 7)))
+  (return)
+))
+
 
 
 (def init-world-snake (fn intern void (void)
@@ -276,7 +317,7 @@
   (incf ($ (@:@ player vel) 1) (cond ((is-pressed (@$ "w" 0)) 0.01)
                                      ((is-pressed (@$ "s" 0)) -0.01)
                                      (true 0.00)))
-  (in de connections
+  (ignore in de connections
     (act (@ de)))
   (in a world
     (let ((Ball \ (get (@ a))))

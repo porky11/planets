@@ -16,8 +16,8 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (q 0)))
 )
 
-
 (using-namespace std.macros
+
 (def when (macro extern (con ...)
   (qq if (uq con) (do (uql (get-varargs-list (- (arg-count mc) 1)))) false)))
 
