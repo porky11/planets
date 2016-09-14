@@ -239,20 +239,16 @@
 
   (def attach-shader (fn extern void ((program Program) (shader Shader))
     (glAttachShader (@: program value) (@: shader value))))
+  (ignore def attach-shader (macro extern ((program Program) (shader Shader) ...)
+    (qq do (attach-shader (uq program) (uq shader))
+           (attach-shader (uq program) (uql (get-varargs-list (- (arg-count mc) 2)))))))
+
     
   (def get-shader-iv (macro extern ((shader Shader) (pname pname))
     (let ((name \ (make-gensym-var-node mc)))
       (qq do (def (uq name) (var auto int 0))
              (glGetShaderiv (@: (uq shader) value) (value (uq pname)) (# (uq name)))
              (move (uq name))))))
-    #|
-  (def attach-shader (macro extern ((program Program) (shader Shader) ...)
-    (qq do (attach-shader (uq program) (uq shader))
-           (attach-shader (uq program) (uql (get-varargs-list (- (arg-count mc) 2)))))))
-  (def attach-shader (macro extern ((program Program) (shader Shader) ...)
-    (qq do (attach-shader (uq program) (uq shader))
-           (attach-shaders (uq program) (uql (get-varargs-list (- (arg-count mc) 2)))))))
-           |#
   (def link-program (fn extern void ((program Program))
     (glLinkProgram (@: program value))))
   (def use-program (fn extern void ((program Program))

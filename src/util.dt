@@ -16,7 +16,18 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (q 0)))
 )
 
+
 (using-namespace std.macros
+
+
+
+(def is-zero (fn extern bool ((a float))
+  (= a 0.0)))
+
+(def /0 (macro extern (x y)
+  (qq if (is-zero (uq y))
+    (* (uq x) (uq y))
+    (/ (uq x) (uq y)))))
 
 (def when (macro extern (con ...)
   (qq if (uq con) (do (uql (get-varargs-list (- (arg-count mc) 1)))) false)))
