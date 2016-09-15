@@ -46,6 +46,8 @@
   (instantiate * (Array float 2))
   (instantiate / (Array float 2))
 
+  (instantiate Array float 3)
+  
 
   (def-type-macro2 Ball)
   (def-concept-macro Ball intern ((T Type) (N Value))
@@ -54,6 +56,7 @@
         (struct intern
           ((pos (Array (uq T) (uq N)))
            (force (Array (uq T) (uq N)))
+           (color (Array (uq T) 3))
            (mass (uq T))
            (r (uq T)))))
       (def = (fn intern bool ((p0 (ref (Ball (uq T) (uq N)))) (p1 (ref (Ball (uq T) (uq N)))))
@@ -201,6 +204,8 @@
          (force
            ((elements (array 0.0 0.0))))
          (mass 1.0)
+         (color ((elements
+                   (array 1.0 0.0 0.0))))
          (r 0.1)))
       (init up-ball ball)
       (push-back world (move up-ball))))
@@ -212,6 +217,8 @@
            ((elements (array 0.0 0.0))))
          (force
            ((elements (array-of 2 float (array 0.0 0.0)))))
+         (color ((elements
+                   (array 1.0 0.0 0.0))))
          (mass 3200.0)
          (r 4.0)))
       (init up-ball ball)
@@ -233,6 +240,8 @@
         ((pos ((elements (array (*' 0.1 i) 7.0))))
          (force ((elements (array 0.0 0.0))))
          (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
+         (color ((elements
+                   (array 0.0 0.5 0.0))))
          (r (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))))
       (init up-ball ball)
       (when (not (null last))
@@ -275,15 +284,11 @@
       varying vec2 p;
       varying vec2 c;
       uniform vec2 lpos;
+      uniform vec3 color;
       void main(void) {
         vec2 ldir=normalize(lpos-p);
         float cn = max(min(1,dot(ldir,c)),0);
-        gl_FragColor = vec4(
-          0.0,
-          cn,
-          0.0,
-          1
-        );
+        gl_FragColor = vec4(color*cn, 1);
       }
 ")
     (compile-shader fragment-shader)
@@ -363,6 +368,7 @@
       ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
+        (uniform (get-uniform-location program "color") (: (@:@ (get (@ a)) color) elements))
         (uniform (get-uniform-location program "scale") (@:@ (get (@ a)) r))
         (vertex-pointer 2 float 0 circle)
         (draw-arrays triangle-fan 0 32))
