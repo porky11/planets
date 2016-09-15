@@ -24,14 +24,12 @@
   (@$ pressed key)))
 
 (def press (fn intern void ((key char))
-  (setf ($ pressed key) true)
-  (return)))
+  (setf ($ pressed key) true)))
 
 (def release (fn intern void ((key char))
-  (setf ($ pressed key) false)
-  (return)))
+  (setf ($ pressed key) false)))
 
-
+(def gravity (var intern float 0.00000))
 
 
 
@@ -53,7 +51,8 @@
       (def (Ball (uq T) (uq N))
         (struct intern
           ((pos (Array (uq T) (uq N)))
-           (vel (Array (uq T) (uq N)))
+           (force (Array (uq T) (uq N)))
+           (mass (uq T))
            (r (uq T)))))
       (def = (fn intern bool ((p0 (ref (Ball (uq T) (uq N)))) (p1 (ref (Ball (uq T) (uq N)))))
         (p= p0 p1)))
@@ -61,8 +60,8 @@
         (not (p= p0 p1))))
       (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
         (qq : (uq (uq Ball)) pos)))
-      (def vel (macro intern ((Ball (Ball (uq T) (uq N))))
-        (qq : (uq (uq Ball)) vel)))
+      (def force (macro intern ((Ball (Ball (uq T) (uq N))))
+        (qq : (uq (uq Ball)) force)))
       (implement Struct (Ball (uq T) (uq N)))
       (implement EqualityComparable (Ball (uq T) (uq N)))))
 
@@ -73,14 +72,14 @@
               (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
               (dis \ (sqrt dis2))
               (rs \ (+ (@:@ p0 r) (@:@ p1 r)))
-              (acc \ (/ disvec (* 500000.0 (* dis dis2)))))
-          ;(printf "%f\n" (@$ acc 0))
+              (st \ 0.125)
+              (acc \ (* disvec (/ (* 1.0 gravity) (* dis dis2)))))
+         ;(printf "%f\n" (@$ acc 0))
           (if (< dis (* 1.0 rs))
-              (incf (# acc) (* disvec (/ (- dis rs) (* dis 8.0))))
+              (incf (# acc) (* disvec (* st (/ (- dis rs) dis))))
               0)
-          (incf (vel p1) acc)
-          (decf (vel p0) acc))
-        (return)))))
+          (incf (force p1) acc)
+          (decf (force p0) acc))))))
   (def-concept-macro whatever intern ((T Type))
     (qq do
       (def = (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
@@ -111,11 +110,10 @@
                 (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
                 (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
                 (dis \ (sqrt dis2))
-                (acc (Array float 2) (* disvec (* (/ (- dis rs) dis) st))))
+                (acc \ (* disvec (* (/ (- dis rs) dis) st))))
             (printf "%f, %f\n" (@$ acc 0) (@$ acc 1))
-            (incf (:@ p1 vel) acc)
-            (decf (:@ p0 vel) acc))
-          (return))))))
+            (incf (:@ p1 force) acc)
+            (decf (:@ p0 force) acc)))))))
 
 
   (def-type-macro Cluster)
@@ -129,7 +127,7 @@
 
   (instantiate Ball float 2)
   (def-ptr-macro pos intern (Ball float 2))
-  (def-ptr-macro vel intern (Ball float 2))
+  (def-ptr-macro force intern (Ball float 2))
   (instantiate collide (Ball float 2))
   (def-ptr-macro2 collide intern (Ball float 2))
   (instantiate UniquePtr (Ball float 2))
@@ -167,11 +165,9 @@
 
 (using-namespace std
 (def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
-  (let ((i int 0))
-    (for true (< i 32) (incv i)
-      (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/ (pi) 16.0) i)))
-      (setf ($ (@ ($ (@ circle) i)) 1) (sin (*' (/ (pi) 16.0) i)))))
-      (return))))
+  (for (i int 0) (< i 32) (incv i)
+    (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/ (pi) 16.0) i)))
+    (setf ($ (@ ($ (@ circle) i)) 1) (sin (*' (/ (pi) 16.0) i)))))))
 
 
 (def circle (var intern (array-of 32 (array-of 2 float))))
@@ -181,30 +177,50 @@
 (def min (fn intern int ((x int) (y int))
   (if (< x y) x y)))
 
+(def init-world (fn intern void (void)
+  (using-namespace std
+    (for (i \ 0) (< i 8) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf ball
+        ((pos
+           ((elements
+              (array (* (cos (*' (/ (pi) 4.0) i)) 5.0)
+                     (* (sin (*' (/ (pi) 4.0) i)) 5.0)))))
+         (force
+           ((elements (array 0.0 0.0))))
+         ;(mass 1.0)
+         (r 0.1)))
+      (init up-ball ball)
+      (push-back world (move up-ball))))
+    (for (i \ 0) (< i 1) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf ball
+        ((pos
+           ((elements (array 0.0 0.0))))
+         (force
+           ((elements (array-of 2 float (array 0.0 0.0)))))
+         ;(mass 3200.0)
+         (r 4.0)))
+      (init up-ball ball)
+      (push-back world (move up-ball)))))
+  
+  ;(setv player (get (@$ world 0)))
+  (return)
+))
 
 
 (def init-world-snake (fn intern void (void)
   (using-namespace std
-   #| (ignore for (i \ 0) 
-         (< i 15) (incv i)
-      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
-            (up-ball (UniquePtr (Ball float 2))))
-      (setf ($ (@:@ ball pos) 0) (- (/ (cos (*' (/ (pi) 4.0) i)) 5.0) 2.0))
-      (setf ($ (@:@ ball pos) 1) (/ (sin (*' (/ (pi) 4.0) i)) 5.0))
-      (setf ($ (@:@ ball vel) 0) 0.0)
-      (setf ($ (@:@ ball vel) 1) 0.0)
-      (setf (:@ ball r) 0.1)
-      (init up-ball ball)
-      (push-back world (move up-ball)))) |#
     (for ((i \ 0) (last \ (nullptr (Ball float 2))))
-         (< i 15) (incv i)
+         (< i 8) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
-      (setf ($ (@:@ ball pos) 0) (*' 0.1 i))
-      (setf ($ (@:@ ball pos) 1) 0.0)
-      (setf ($ (@:@ ball vel) 0) 0.0)
-      (setf ($ (@:@ ball vel) 1) 0.0)
-      (setf (:@ ball r) (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))
+      (setf ball
+        ((pos ((elements (array (*' 0.1 i) 0.0))))
+         (force ((elements (array 0.0 0.0))))
+         (r (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))))
       (init up-ball ball)
       (push-back world (move up-ball))
       (when (not (null last))
@@ -218,7 +234,6 @@
   )))
   
   (setv player (get (@$ world 7)))
-  (return)
 ))
 
 (using-namespace gl
@@ -236,8 +251,8 @@
       varying vec2 c;
       void main(void) {
         c=gl_Vertex.xy;
-        p=c*scale+pos-cam;
-        gl_Position = vec4(p,0,1);
+        p=c*scale+pos;
+        gl_Position = vec4(p-cam,0,1);
       }
     ")
     (compile-shader vertex-shader)
@@ -270,18 +285,16 @@
 
 (def timer (fn intern void ((a int))
   ;(incf (# cam) (cond ((is-pressed (@$ "a" 0)) 0.02) ((is-pressed (@$ "d" 0)) -0.02) (true 0.00)))
-  (incf ($ (@:@ player vel) 0) (cond ((is-pressed (@$ "a" 0)) -0.01)
-                                     ((is-pressed (@$ "d" 0)) 0.01) 
-                                     (true 0.00)))
-  (incf ($ (@:@ player vel) 1) (cond ((is-pressed (@$ "w" 0)) 0.01)
-                                     ((is-pressed (@$ "s" 0)) -0.01)
-                                     (true 0.00)))
+  (incf ($ (@:@ player force) 0) (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
+                                    (if (is-pressed (@$ "d" 0)) 0.01 0.0)))
+  (incf ($ (@:@ player force) 1) (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
+                                    (if (is-pressed (@$ "s" 0)) -0.01 0.0)))
   (in de connections
     (act (@ de)))
   (in a world
-    (let ((Ball \ (get (@ a))))
-      (incf (:@ Ball pos) (@:@ Ball vel))
-      (mulf (:@ Ball vel) 0.95)
+    (let ((ball \ (get (@ a))))
+      (incf (:@ ball pos) (/ (@:@ ball force) (@:@ ball mass)))
+      (mulf (:@ ball force) 0.8)
       ))
   (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
     (let ((p0 \ (get (@ (source b)))))
@@ -289,8 +302,7 @@
           (let ((p1 \ (get (@ (source b2)))))
             (collide p0 p1) ))))
     (glutPostRedisplay)
-    (glutTimerFunc (/ 1000 32) (# timer) 0)
-    (return)))
+    (glutTimerFunc (/ 1000 32) (# timer) 0)))
 
 
 (using-namespace glut
@@ -311,7 +323,7 @@
   (init-program)
   (init-circle (# circle))
 
-  (init-world)
+  (init-world-snake)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
@@ -340,8 +352,7 @@
         (draw-arrays triangle-fan 0 32))
       (disable-client-state)
       (end)
-      (flush)
-      (return))))
+      (flush))))
   (main-loop)
   (return 0)))
 )
