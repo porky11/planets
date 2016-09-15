@@ -31,7 +31,7 @@
   (setf ($ pressed key) false)
   (return)))
 
-(def gravity (var intern float 0.00000))
+(def gravity (var intern float 0.00002))
 
 
 
@@ -78,13 +78,12 @@
               (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
               (dis \ (sqrt dis2))
               (rs \ (+ (@:@ p0 r) (@:@ p1 r)))
-              (st \ 1.0)
-              (acc \ (* disvec (/ (* 1.0 gravity) (* dis dis2)))))
+              (st \ 0.5)
+              (acc \ (* disvec (/ (* (* m0 m1) gravity) (* dis dis2)))))
             ;;(printf "%f, %f\n" (@$ acc 0) (@$ acc 1))
           (when (< dis (* 1.0 rs))
-            (def acc2 (var auto \ (* disvec (* (* 1.0 st) (/ (- dis rs) dis)))))
-            (printf "%f, %f\n" (@$ acc2 0) (@$ acc2 1))
-            (incf (# acc) acc2))
+            (def acc2 (var auto \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
+            (setf (# acc) acc2))
           (incf (force p1) acc)
           (decf (force p0) acc))))))
   (def-concept-macro whatever intern ((T Type))
@@ -116,10 +115,10 @@
                 (st \ (@: conn strength))
                 (m0 \ (@:@ p0 mass))
                 (m1 \ (@:@ p1 mass))
-                (disvec \ (@:@ p0 pos) (@:@ p1 pos))
+                (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
                 (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
                 (dis \ (sqrt dis2))
-                (acc \ (* disvec (* (* 1.0 st) (/ (- dis rs) dis)))))
+                (acc \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
             (printf "%f, %f\n" (@$ acc 0) (@$ acc 1))
             (incf (:@ p1 force) acc)
             (decf (:@ p0 force) acc)))))))
@@ -176,8 +175,9 @@
 (using-namespace std
 (def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
     (for (i int 0) (< i 32) (incv i)
-      (setf ($ (@ ($ (@ circle) i)) 0) (cos (*' (/ (pi) 16.0) i)))
-      (setf ($ (@ ($ (@ circle) i)) 1) (sin (*' (/ (pi) 16.0) i))))))
+      (setf ($ (@ circle) i)
+        (array (cos (*' (/ (pi) 16.0) i))
+               (sin (*' (/ (pi) 16.0) i)))))))
 )
 
 
@@ -223,10 +223,10 @@
 
 
 
-(def init-world-snake (fn intern void (void)
+(def init-snake (fn intern void (void)
   (using-namespace std
     (for ((i \ 0) (last \ (nullptr (Ball float 2))))
-         (< i 2) (incv i)
+         (< i 8) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
@@ -239,14 +239,14 @@
         (let ((conn (Connection (p (Ball float 2)))
                     ((object0 last)
                      (object1 ball)
-                     (length 0.5)
-                     (strength 0.001))))
+                     (length 0.25)
+                     (strength 0.25))))
           (push-back connections conn)))
       (setv last (get up-ball))
       (push-back world (move up-ball))
   )))
   
-  (setv player (get (@$ world 1)))
+  (setv player (get (@$ world 7)))
   (return)
 ))
 
@@ -307,8 +307,8 @@
     (act (@ de)))
   (in a world
     (let ((ball \ (get (@ a))))
-      (incf (:@ ball pos) (@:@ ball force))
-      (mulf (:@ ball force) 0.8)
+      (incf (:@ ball pos) (/ (@:@ ball force) (@:@ ball mass)))
+      (mulf (:@ ball force) 0.95)
       ))
   (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
     (let ((p0 \ (get (@ (source b)))))
@@ -338,8 +338,8 @@
   (init-program)
   (init-circle (# circle))
 
-  (init-world-snake)
-  ;(init-world)
+  (init-snake)
+  (init-world)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
@@ -357,7 +357,7 @@
       (clear color)
       (enable-client-state vertex-array)
       (use-program program)
-      ;(incf (# x) 0.01)
+      (incf (# x) 0.01)
       (def y (var auto \ (/ (sqrt x) 10.0)))
       (uniform (get-uniform-location program "lpos") (* 6.0 (sin x)) (* 6.0 (cos x)))
       ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
