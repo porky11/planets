@@ -51,26 +51,31 @@
 
   (def-type-macro2 Ball)
   (def-concept-macro Ball intern ((T Type) (N Value))
-    (qq do
-      (def (Ball (uq T) (uq N))
-        (struct intern
-          ((pos (Array (uq T) (uq N)))
-           (force (Array (uq T) (uq N)))
-           (color (Array (uq T) 3))
-           (mass (uq T))
-           (r (uq T)))))
-      (def = (fn intern bool ((p0 (ref (Ball (uq T) (uq N)))) (p1 (ref (Ball (uq T) (uq N)))))
-        (p= p0 p1)))
-      (def != (fn intern bool ((p0 (ref (Ball (uq T) (uq N)))) (p1 (ref (Ball (uq T) (uq N)))))
-        (not (p= p0 p1))))
-      (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
-        (qq : (uq (uq Ball)) pos)))
-      (def force (macro intern ((Ball (Ball (uq T) (uq N))))
-        (qq : (uq (uq Ball)) force)))
-      (implement Struct (Ball (uq T) (uq N)))
-      (implement EqualityComparable (Ball (uq T) (uq N)))))
+    (let ((B \ (qq Ball (uq T) (uq N)))
+          (A \ (qq Array (uq T) (uq N))))
+      (qq do
+        (def (uq B)
+          (struct intern
+            ((pos (uq A))
+             (force (uq A))
+             (color (Array (uq T) 3))
+             (mass (uq T))
+             (r (uq T)))))
+        (def = (fn intern bool ((p0 (ref (uq B))) (p1 (ref (uq B))))
+          (p= p0 p1)))
+        (def != (fn intern bool ((p0 (ref (uq B))) (p1 (ref (uq B))))
+          (not (p= p0 p1))))
+        (def act (fn intern bool ((ball (ref (uq B))))
+          (incf (:@ ball pos) (/ (@:@ ball force) (@:@ ball mass)))
+          (mulf (:@ ball force) 0.95)))
+        (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
+          (qq : (uq (uq Ball)) pos)))
+        (def force (macro intern ((Ball (Ball (uq T) (uq N))))
+          (qq : (uq (uq Ball)) force)))
+        (implement Struct (Ball (uq T) (uq N)))
+        (implement EqualityComparable (Ball (uq T) (uq N))))))
   
-  
+;  (def length-vector (fn intern 
   
   (def-concept-macro collide intern ((T Type))
     (qq using-namespace std
@@ -167,6 +172,7 @@
 (def world (var intern (Vector (UniquePtr (Ball float 2)))))
 
 (def player (var intern (p (Ball float 2))))
+(def planet (var intern (p (Ball float 2))))
 
 (def connections (var intern (Vector (Connection (p (Ball float 2))))))
 
@@ -174,15 +180,15 @@
   (q 3.14159265358979323846)))
 
 (using-namespace std
-(def init-circle (fn intern void ((circle (p (array-of 32 (array-of 2 float)))))
-    (for (i int 0) (< i 32) (incv i)
+(def init-circle (fn intern void ((circle (p (array-of 256 (array-of 2 float)))))
+    (for (i int 0) (< i 256) (incv i)
       (setf ($ (@ circle) i)
-        (array (cos (*' (/ (pi) 16.0) i))
-               (sin (*' (/ (pi) 16.0) i)))))))
+        (array (cos (*' (/ (pi) 128.0) i))
+               (sin (*' (/ (pi) 128.0) i)))))))
 )
 
 
-(def circle (var intern (array-of 32 (array-of 2 float))))
+(def circle (var intern (array-of 256 (array-of 2 float))))
 
 (def max (fn intern int ((x int) (y int))
   (if (> x y) x y)))
@@ -191,7 +197,7 @@
 
 (def init-world (fn intern void (void)
   (using-namespace std
-    (for (i \ 0) (< i 8) (incv i)
+    (ignore for (i \ 0) (< i 8) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
@@ -220,6 +226,7 @@
          (mass 51200.0)
          (r 16.0)))
       (init up-ball ball)
+      (setv planet ball)
       (push-back world (move up-ball)))))
   
   ;(setv player (get (@$ world 0)))
@@ -228,34 +235,60 @@
 
 
 
-(ignore def init-snake (fn intern void (void)
-  (using-namespace std
-    (for ((i \ 0) (last \ (nullptr (Ball float 2))))
-         (< i 8) (incv i)
-      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
-            (up-ball (UniquePtr (Ball float 2))))
-      (setf ball
-        ((pos ((elements (array (*' 0.1 i) 25.0))))
-         (force ((elements (array 0.0 0.0))))
-         (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
-         (color ((elements
-                   (array 0.0 0.5 0.0))))
-         (r (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))))
-      (init up-ball ball)
-      (when (not (null last))
-        (let ((conn (Connection (p (Ball float 2)))
-                    ((object0 last)
-                     (object1 ball)
-                     (length 0.25)
-                     (strength 0.25))))
-          (push-back connections conn)))
-      (setv last (get up-ball))
-      (push-back world (move up-ball))
-  )))
-  
-  (setv player (get (@$ world 7)))
-  (return)
-))
+(def init-blombo (fn intern void (void)
+  (let ((ball1 \ (malloc' 1 (Ball float 2)))
+        (ball2 \ (malloc' 1 (Ball float 2)))
+        (ball3 \ (malloc' 1 (Ball float 2)))
+        (up-ball1 (UniquePtr (Ball float 2)))
+        (up-ball2 (UniquePtr (Ball float 2)))
+        (up-ball3 (UniquePtr (Ball float 2))))
+    (setf ball1
+      ((pos ((elements (array 0.0 21.0))))
+       (force ((elements (array 0.0 0.0))))
+       (color ((elements
+                 (array 1.0 1.0 0.0))))
+       (mass 1.0)
+       (r 0.1)))
+    (setf ball2
+      ((pos ((elements (array 0.25 20.5))))
+       (force ((elements (array 0.0 0.0))))
+       (color ((elements
+                 (array 1.0 1.0 0.0))))
+       (mass 0.25)
+       (r 0.05)))
+    (setf ball3
+      ((pos ((elements (array -0.25 20.5))))
+       (force ((elements (array 0.0 0.0))))
+       (color ((elements
+                 (array 1.0 1.0 0.0))))
+       (mass 0.25)
+       (r 0.05)))
+    (init up-ball1 ball1)
+    (init up-ball2 ball2)
+    (init up-ball3 ball3)
+    (setv player ball1)
+    (push-back world (move up-ball1))
+    (push-back world (move up-ball2))
+    (push-back world (move up-ball3))
+    (let ((conn1 (Connection (p (Ball float 2)))
+                 ((object0 ball1)
+                  (object1 ball2)
+                  (length 0.5)
+                  (strength 0.25)))
+          (conn2 (Connection (p (Ball float 2)))
+                 ((object0 ball1)
+                  (object1 ball3)
+                  (length 0.5)
+                  (strength 0.25)))
+          (conn3 (Connection (p (Ball float 2)))
+                 ((object0 ball2)
+                  (object1 ball3)
+                  (length 0.25)
+                  (strength 0.125))))
+        (push-back connections conn1)
+        (push-back connections conn2)
+        (push-back connections conn3))
+)))
 
 (def init-snake (fn intern void (void)
   (using-namespace std
@@ -299,14 +332,16 @@
       uniform vec2 cam;
       uniform vec2 pos;
       uniform float scale;
-      uniform vec2 rot;
+      uniform vec2 rotvec;
       varying vec2 p;
       varying vec2 c;
       void main(void) {
+        
         c=gl_Vertex.xy;
         p=c*scale+pos;
+        vec2 rot = normalize(rotvec);
         vec2 pcam = p-cam;
-        vec2 pp = pcam*rot.x+vec2(pcam.y,-pcam.x)*rot.y;
+        vec2 pp = pcam*rot.y-vec2(pcam.y,-pcam.x)*rot.x;
         gl_Position = vec4(pp,0,1);
       }
     ")
@@ -333,30 +368,52 @@
 (def x (var intern float 0.0))
 (def rot (var intern float 0.0))
 
-(def timer (fn intern void ((a int))
-  (ignore incf ($ (@:@ player force) 0) (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
-                                    (if (is-pressed (@$ "d" 0)) 0.01 0.0)))
-  (ignore incf ($ (@:@ player force) 1) (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
-                                    (if (is-pressed (@$ "s" 0)) -0.01 0.0)))
+(def rotvec (var intern (array-of 2 float)))
 
-                                    
+
+(def up-controls (fn intern void (void)
+  (using-namespace std
+    (let ((disvec \ (- (@:@ player pos) (@:@ planet pos)))
+          (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
+          (dis \ (sqrt dis2)))
+    (setv rotvec (@: (/ disvec dis) elements))))
+  (def up (var auto (Array float 2)
+    ((elements (array
+       (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
+          (if (is-pressed (@$ "d" 0)) 0.01 0.0))
+       (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
+          (if (is-pressed (@$ "s" 0)) -0.01 0.0)))))))
+  (def side (var auto (Array float 2)
+    ((elements (array
+      (@$ up 1)
+      (- 0.0 (@$ up 0)))))))
+  (incf (:@ player force) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
+
+(def rot-controls (fn intern void (void)
   (incf (# rot) (+ (if (is-pressed (@$ "a" 0)) 0.025 0.0)
                        (if (is-pressed (@$ "d" 0)) -0.025 0.0)))
   (using-namespace std
-    (let ((arr0 (Array float 2) ((elements (array 0.0 0.0))))
-          (arr (Array float 2) ((elements (array (- 0.0 (sin rot)) (cos rot)))))
+    (setv rotvec (array (cos rot) (sin rot)))
+    (let ((arr (Array float 2) ((elements (array (- 0.0 (sin rot)) (cos rot)))))
           (st \ 0.01)
           (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
                     (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
           (f \ (* arr (* st dir))))
-      (incf (:@ player force) f)))
+      (incf (:@ player force) f)))))
+
+(def controls (var intern (p (fn void (void)))))
+
+(def timer (fn intern void ((a int))
+  (setv controls (# up-controls))
+  (controls)
+
+                                    
 
   (in de connections
     (act (@ de)))
   (in a world
     (let ((ball \ (get (@ a))))
-      (incf (:@ ball pos) (/ (@:@ ball force) (@:@ ball mass)))
-      (mulf (:@ ball force) 0.95)
+      (act (@ ball))
       ))
   (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
     (let ((p0 \ (get (@ (source b)))))
@@ -386,16 +443,15 @@
   (init-program)
   (init-circle (# circle))
 
-  (init-snake)
+  (init-blombo)
+  ;(init-snake)
   (init-world)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
-    (printf "press\n")
     (press key)))
 
   (glutKeyboardUpFunc (fn void ((key char) (x int) (y int))
-    (printf "release\n")
     (release key)))
 
   (display-func (void)
@@ -406,15 +462,14 @@
       (enable-client-state vertex-array)
       (use-program program)
       (incf (# x) 0.01)
-      (def y (var auto \ (/ (sqrt x) 10.0)))
-      (uniform (get-uniform-location program "lpos") (* 6.0 (sin x)) (* 32.0 (cos x)))
-      (uniform (get-uniform-location program "rot") (cos rot) (sin rot))
+      (uniform (get-uniform-location program "lpos") (* 32.0 (sin x)) (* 32.0 (cos x)))
+      (uniform (get-uniform-location program "rotvec") (# rotvec))
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
         (uniform (get-uniform-location program "color") (: (@:@ (get (@ a)) color) elements))
         (uniform (get-uniform-location program "scale") (@:@ (get (@ a)) r))
         (vertex-pointer 2 float 0 circle)
-        (draw-arrays triangle-fan 0 32))
+        (draw-arrays triangle-fan 0 256))
       (disable-client-state)
       (end)
       (flush)
