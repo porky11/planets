@@ -31,7 +31,7 @@
   (setf ($ pressed key) false)
   (return)))
 
-(def gravity (var intern float 0.00002))
+(def gravity (var intern float 0.00001))
 
 
 
@@ -83,7 +83,6 @@
               (rs \ (+ (@:@ p0 r) (@:@ p1 r)))
               (st \ 0.5)
               (acc \ (* disvec (/ (* (* m0 m1) gravity) (* dis dis2)))))
-            ;;(printf "%f, %f\n" (@$ acc 0) (@$ acc 1))
           (when (< dis (* 1.0 rs))
             (def acc2 (var auto \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
             (setf (# acc) acc2))
@@ -122,7 +121,6 @@
                 (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
                 (dis \ (sqrt dis2))
                 (acc \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
-            (printf "%f, %f\n" (@$ acc 0) (@$ acc 1))
             (incf (:@ p1 force) acc)
             (decf (:@ p0 force) acc)))))))
 
@@ -199,8 +197,8 @@
       (setf ball
         ((pos
            ((elements
-              (array (* (cos (*' (/ (pi) 4.0) i)) 5.0)
-                     (* (sin (*' (/ (pi) 4.0) i)) 5.0)))))
+              (array (* (cos (*' (/ (pi) 4.0) i)) 20.0)
+                     (* (sin (*' (/ (pi) 4.0) i)) 20.0)))))
          (force
            ((elements (array 0.0 0.0))))
          (mass 1.0)
@@ -219,8 +217,8 @@
            ((elements (array-of 2 float (array 0.0 0.0)))))
          (color ((elements
                    (array 1.0 0.0 0.0))))
-         (mass 3200.0)
-         (r 4.0)))
+         (mass 51200.0)
+         (r 16.0)))
       (init up-ball ball)
       (push-back world (move up-ball)))))
   
@@ -230,6 +228,35 @@
 
 
 
+(ignore def init-snake (fn intern void (void)
+  (using-namespace std
+    (for ((i \ 0) (last \ (nullptr (Ball float 2))))
+         (< i 8) (incv i)
+      (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
+            (up-ball (UniquePtr (Ball float 2))))
+      (setf ball
+        ((pos ((elements (array (*' 0.1 i) 25.0))))
+         (force ((elements (array 0.0 0.0))))
+         (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
+         (color ((elements
+                   (array 0.0 0.5 0.0))))
+         (r (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))))
+      (init up-ball ball)
+      (when (not (null last))
+        (let ((conn (Connection (p (Ball float 2)))
+                    ((object0 last)
+                     (object1 ball)
+                     (length 0.25)
+                     (strength 0.25))))
+          (push-back connections conn)))
+      (setv last (get up-ball))
+      (push-back world (move up-ball))
+  )))
+  
+  (setv player (get (@$ world 7)))
+  (return)
+))
+
 (def init-snake (fn intern void (void)
   (using-namespace std
     (for ((i \ 0) (last \ (nullptr (Ball float 2))))
@@ -237,7 +264,7 @@
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
-        ((pos ((elements (array (*' 0.1 i) 7.0))))
+        ((pos ((elements (array (*' 0.1 i) 25.0))))
          (force ((elements (array 0.0 0.0))))
          (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
          (color ((elements
@@ -262,6 +289,8 @@
 (using-namespace gl
 (def program (var intern Program))
 
+
+
 (def init-program (fn intern void (void)
   (setv program (create-program))
   (let ((vertex-shader \ (create-shader vertex-shader))
@@ -270,12 +299,15 @@
       uniform vec2 cam;
       uniform vec2 pos;
       uniform float scale;
+      uniform vec2 rot;
       varying vec2 p;
       varying vec2 c;
       void main(void) {
         c=gl_Vertex.xy;
         p=c*scale+pos;
-        gl_Position = vec4(p-cam,0,1);
+        vec2 pcam = p-cam;
+        vec2 pp = pcam*rot.x+vec2(pcam.y,-pcam.x)*rot.y;
+        gl_Position = vec4(pp,0,1);
       }
     ")
     (compile-shader vertex-shader)
@@ -299,15 +331,26 @@
 )
 
 (def x (var intern float 0.0))
-
-(def cam (var intern float 0.0))
+(def rot (var intern float 0.0))
 
 (def timer (fn intern void ((a int))
-  ;(incf (# cam) (cond ((is-pressed (@$ "a" 0)) 0.02) ((is-pressed (@$ "d" 0)) -0.02) (true 0.00)))
-  (incf ($ (@:@ player force) 0) (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
+  (ignore incf ($ (@:@ player force) 0) (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
                                     (if (is-pressed (@$ "d" 0)) 0.01 0.0)))
-  (incf ($ (@:@ player force) 1) (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
+  (ignore incf ($ (@:@ player force) 1) (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
                                     (if (is-pressed (@$ "s" 0)) -0.01 0.0)))
+
+                                    
+  (incf (# rot) (+ (if (is-pressed (@$ "a" 0)) 0.025 0.0)
+                       (if (is-pressed (@$ "d" 0)) -0.025 0.0)))
+  (using-namespace std
+    (let ((arr0 (Array float 2) ((elements (array 0.0 0.0))))
+          (arr (Array float 2) ((elements (array (- 0.0 (sin rot)) (cos rot)))))
+          (st \ 0.01)
+          (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
+                    (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
+          (f \ (* arr (* st dir))))
+      (incf (:@ player force) f)))
+
   (in de connections
     (act (@ de)))
   (in a world
@@ -364,8 +407,8 @@
       (use-program program)
       (incf (# x) 0.01)
       (def y (var auto \ (/ (sqrt x) 10.0)))
-      (uniform (get-uniform-location program "lpos") (* 6.0 (sin x)) (* 6.0 (cos x)))
-      ;(uniform (get-uniform-location program "lpos") 0.0 0.0)
+      (uniform (get-uniform-location program "lpos") (* 6.0 (sin x)) (* 32.0 (cos x)))
+      (uniform (get-uniform-location program "rot") (cos rot) (sin rot))
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
         (uniform (get-uniform-location program "color") (: (@:@ (get (@ a)) color) elements))
