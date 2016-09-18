@@ -17,8 +17,11 @@ libspatial.dtm: src/spatial.dt
 libutil.dtm: src/util.dt
   dalec -c src/util.dt
 
-libsequence-math.dtm: src/sequence-math.dt
+libsequence-math.dtm: src/sequence-math.dt libmath-concepts.dtm
   dalec -c src/sequence-math.dt
+
+libmath-concepts.dtm: src/math-concepts.dt
+  dalec -c src/math-concepts.dt
 
 src/%.dt:
   true
