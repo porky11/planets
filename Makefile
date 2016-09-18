@@ -23,6 +23,9 @@ libsequence-math.dtm: src/sequence-math.dt libmath-concepts.dtm
 libmath-concepts.dtm: src/math-concepts.dt
   dalec -c src/math-concepts.dt
 
+libload-bmp.dtm: src/load-bmp.dt
+  dalec -c src/load-bmp.dt
+
 src/%.dt:
   true
 

@@ -1,0 +1,23 @@
+(module load-bmp)
+(import util)
+(import cstdio)
+
+
+(def destroy (fn extern void ((fref (ref (p file))))
+  (fclose (@ fref))))
+
+(def load-bmp (fn extern (p uint8) ((path (p (const char))))
+  (let ((header (array-of 54 char))
+        (file (p file) (fopen path "rb")))
+    (unless (or (null file) (!= (fread (cast header (p void)) (cast 1 size) (cast 54 size) file) (cast 54 size)))
+      (let ((size size (@ (cast ($ header 0x22) (p size))))
+            (width size (@ (cast ($ header 0x12) (p size))))
+            (height size (@ (cast ($ header 0x16) (p size))))
+            (data (p uint8)))
+        (when (= (cast 0 size) size) (setv size (* (* width height) (cast 3 size))))
+        (setv data (malloc' size uint8))
+        (fread (cast data (p void)) 1 size file)
+        (return data)))
+    (nullptr uint8))))
+
+

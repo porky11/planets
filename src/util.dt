@@ -2,6 +2,7 @@
 
 (import macros)
 (import cstdlib)
+(import introspection)
 
 #|
 @macro mexit
@@ -16,11 +17,30 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (q 0)))
 )
 
+(def is-valid (macro extern ((a bool))
+  a))
+
 
 
 
 (using-namespace std.macros
 
+(def ignore (macro extern (...)
+  (qq no-op)))
+
+(def mand (macro extern (a b)
+  (if (is-lvalue mc a)
+    (qq if (is-valid (uq a)) (uq a) (uq b))
+    (let ((tmp \ (make-gensym-var-node mc)))
+      (qq let (((uq tmp) \ val))
+        (if (is-valid (uq tmp)) (uq tmp) (uq b)))))))
+
+(def mor (macro extern (a b)
+  (if (is-lvalue mc a)
+    (qq if (is-valid (uq a)) (uq a) (uq b))
+    (let ((tmp \ (make-gensym-var-node mc)))
+      (qq let (((uq tmp) \ val))
+        (if (is-valid (uq tmp)) (uq tmp) (uq b)))))))
 
 
 (def is-zero (fn extern bool ((a float))
@@ -34,11 +54,35 @@ Useful for debug reasons, when you know some error appears before this macro is 
 (def when (macro extern (con ...)
   (qq if (uq con) (do (uql (get-varargs-list (- (arg-count mc) 1)))) false)))
 
-(def in (macro extern (name value ...)
+(def unless (macro extern (con ...)
+  (qq if (uq con) false (do (uql (get-varargs-list (- (arg-count mc) 1)))))))
+
+#|
+@macro in
+
+Uses iterators to iterate over a sequence. 
+
+@param name will be set to a pointer of the value-type of the iterator.
+@param value is a container type from which the iterator is created
+|#
+
+(ignore def in (macro extern (name value ...)
   (let ((en \ (make-gensym-var-node mc))
         (bn \ (make-gensym-var-node mc))
-        (val \ (make-gensym-var-node mc)))
-    (qq for ( #| ((uq val) \ (move (uq value))) |# ((uq bn) \ (begin (uq value))) ((uq en) \ (end (uq value))))
+        (val \ (if (is-lvalue mc value) value (make-gensym-var-node mc)))
+        (uql-on-empty-list-does-not-work \ (make-gensym-var-node mc)))
+    (qq for ((uql (if (is-lvalue mc val) (qq (uq (make-gensym-var-node mc)) \ true)
+                                            (qq (uq val) \ (uq value))))
+             ((uq bn) \ (begin (uq val))) ((uq en) \ (end (uq val))))
+            (< (uq bn) (uq en))
+            (setv (uq bn) (successor (uq bn)))
+      (let (((uq name) \ (source (uq bn))))
+        (uql (get-varargs-list (- (arg-count mc) 2))))))))
+
+(def in (macro extern (name value ...)
+  (let ((en \ (make-gensym-var-node mc))
+        (bn \ (make-gensym-var-node mc)))
+    (qq for (((uq bn) \ (begin (uq value))) ((uq en) \ (end (uq value))))
             (< (uq bn) (uq en))
             (setv (uq bn) (successor (uq bn)))
       (let (((uq name) \ (source (uq bn))))
@@ -62,8 +106,6 @@ Useful for debug reasons, when you know some error appears before this macro is 
 
 (using-namespace std.macros
 
-(def ignore (macro extern (...)
-  (qq no-op)))
 
 (def def-ptr-macro (macro extern (name linkage type)
   (qq using-namespace std.macros
