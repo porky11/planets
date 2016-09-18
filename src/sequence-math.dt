@@ -2,38 +2,39 @@
 
 
 (import cstdio)
-(import macros)
 (import stdlib)
 (import array)
+(import macros)
 (import concepts)
 (import assert)
 (import algorithms)
+(import math-concepts)
+
 
 (using-namespace std.macros
 (using-namespace std.concepts
 
-(def-concept Add (refines Type) (T) 
-  (let ((success \ true))
-    (concept-assert (exists-fn mc (qq (uq T) + (uq T) (uq T))) T "+ is not defined over this type")
-    success))
+#|
+(def-concept-macro Array extern ((T Add) (N Value))
+  (let ((A \ (qq Array (uq T) (uq N))))
+    (qq instantiate + (uq A))))
 
-(def-concept Sub (refines Type) (T) 
-  (let ((success \ true))
-    (concept-assert (exists-fn mc (qq (uq T) - (uq T) (uq T))) T "- is not defined over this type")
-    success))
+(def-concept-macro Array extern ((T Sub) (N Value))
+  (let ((A \ (qq Array (uq T) (uq N))))
+    (qq instantiate - (uq A))))
 
-(def-concept Div (refines Type) (T) 
-  (let ((success \ true))
-    (concept-assert (exists-fn mc (qq (uq T) / (uq T) (uq T))) T "/ is not defined over this type")
-    success))
+(def-concept-macro Array extern ((T Mul) (N Value))
+  (let ((A \ (qq Array (uq T) (uq N))))
+    (qq instantiate * (uq A))))
 
-(def-concept Mul (refines Type) (T) 
-  (let ((success \ true))
-    (concept-assert (exists-fn mc (qq (uq T) * (uq T) (uq T))) T "/ is not defined over this type")
-    success))
+(def-concept-macro Array extern ((T Div) (N Value))
+  (let ((A \ (qq Array (uq T) (uq N))))
+    (qq instantiate / (uq A))))
 
-(def-concept BasicMath (refines Add Sub Div Mul) (T) true)
-
+(def-concept-macro Array extern ((T BasicMath) (N Value))
+  (let ((A \ (qq Array (uq T) (uq N))))
+    (qq instantiate basic-math (uq A))))
+|#
 
 (def-concept-macro + extern ((T Container))
     (assert-concept (value-type (nullptr (uq T))) Add)

@@ -17,6 +17,8 @@ Useful for debug reasons, when you know some error appears before this macro is 
 )
 
 
+
+
 (using-namespace std.macros
 
 

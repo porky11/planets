@@ -3,6 +3,7 @@
 (import macros)
 
 
+
 (using-namespace std.macros
 (def displace (macro intern (mover vel)
   (qq incf (pos (uq mover)) (uq vel))))
