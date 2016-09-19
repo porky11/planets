@@ -11,7 +11,7 @@ libgl.dtm: src/gl.dt libutil.dtm
 libglut.dtm: src/glut.dt
   dalec -c src/glut.dt
 
-libspatial.dtm: src/spatial.dt
+libspatial.dtm: src/spatial.dt libutil.dtm
   dalec -c src/spatial.dt
 
 libutil.dtm: src/util.dt

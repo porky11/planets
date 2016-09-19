@@ -1,10 +1,57 @@
 (module spatial)
 
+(import util)
 (import macros)
 
-
-
 (using-namespace std.macros
+
+(def tri (fn intern int ((x int)))
+  (if (= x 1) 0 (+ (- x 1) (tri (- x 1)))))
+
+(def-type-macro2 Force)
+(def-concept Force ((T Type) (N Value))
+  (let ((n int)
+        (valid bool (eval-expression mc (q int) N (cast (# n) (p void))))
+        (NN \ (make-node-from-value mc (tri n)))
+        (F \ (qq Force (uq T) (uq N))))
+  (qq do
+    (def (uq F)
+      (struct extern
+        (vector (Array (uq T) (uq N)))
+        (bivector (Array (uq T) (uq NN)))))
+    (def + (fn extern (retval (uq F)) ((a (uq F)) (b (uq F)))
+      (setf (:@ retval vector) (+ a b))
+      (setf (:@ retval vector) (+ a b))))
+    (def - (fn extern (retval (uq F)) ((a (uq F)) (b (uq F)))
+      (setf (:@ retval vector) (- a b))
+      (setf (:@ retval vector) (- a b))))
+    (implement Add (uq F))
+    (implement Sub (uq F)))))
+
+(def-type-macro2 State)
+(def-concept State ((T Type) (N Value))
+  (let ((n int)
+        (valid bool (eval-expression mc (q int) N (cast (# n) (p void))))
+        (NN \ (make-node-from-value mc (tri n)))
+        (F \ (qq Force (uq T) (uq N))))
+  (qq do
+    (def (uq F)
+      (struct extern
+        (vector (Array (uq T) (uq N)))
+        (bivector (Array (uq T) (uq NN)))))
+    (def + (fn extern (retval (uq F)) ((a (uq F)) (b (uq F)))
+      (setf (:@ retval vector) (+ a b))
+      (setf (:@ retval vector) (+ a b))))
+    (def - (fn extern (retval (uq F)) ((a (uq F)) (b (uq F)))
+      (setf (:@ retval vector) (- a b))
+      (setf (:@ retval vector) (- a b))))
+    (implement Add (uq F))
+    (implement Sub (uq F)))))
+
+(def apply-force (fn intern ((
+
+      
+
 (def displace (macro intern (mover vel)
   (qq incf (pos (uq mover)) (uq vel))))
 
