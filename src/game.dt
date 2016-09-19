@@ -17,6 +17,22 @@
 (import vector)
 (import assert)
 
+;;;FT
+
+(ignore namespace ft
+  (def library (struct extern))
+  (def face (struct extern))
+  (def glyph-slot (struct extern ))
+;  (def )
+  (def FT_Init_FreeType (fn extern-c int ((a (p library)))))
+  ;(def FT_New_Face (fn extern-c int ((a (p library)))))
+)
+
+
+
+
+
+;;;game
 
 (def pressed (var intern (array-of 256 bool)))
 
@@ -490,6 +506,7 @@
   (display-func (void)
     (using-namespace gl
     (using-namespace std
+      ()
       (uniform (get-uniform-location program "cam") (: (@:@ player pos) elements))
       (clear color)
       (enable-client-state vertex-array)
