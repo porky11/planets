@@ -6,6 +6,8 @@
 (def destroy (fn extern void ((fref (ref (p file))))
   (fclose (@ fref))))
 
+(def image (struct extern ((width size) (height size) (Vector uint8))))
+
 (def load-bmp (fn extern (p uint8) ((path (p (const char))))
   (let ((header (array-of 54 char))
         (file (p file) (fopen path "rb")))
