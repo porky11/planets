@@ -311,7 +311,7 @@
   (init-program)
   (init-circle (# circle))
 
-  (init-world)
+  (init-world-snake)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
