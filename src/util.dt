@@ -17,31 +17,10 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (q 0)))
 )
 
-(def is-valid (macro extern ((a bool))
-  a))
-
-
-
-
 (using-namespace std.macros
 
 (def ignore (macro extern (...)
   (qq no-op)))
-
-(def mand (macro extern (a b)
-  (if (is-lvalue mc a)
-    (qq if (is-valid (uq a)) (uq a) (uq b))
-    (let ((tmp \ (make-gensym-var-node mc)))
-      (qq let (((uq tmp) \ val))
-        (if (is-valid (uq tmp)) (uq tmp) (uq b)))))))
-
-(def mor (macro extern (a b)
-  (if (is-lvalue mc a)
-    (qq if (is-valid (uq a)) (uq a) (uq b))
-    (let ((tmp \ (make-gensym-var-node mc)))
-      (qq let (((uq tmp) \ val))
-        (if (is-valid (uq tmp)) (uq tmp) (uq b)))))))
-
 
 (def is-zero (fn extern bool ((a float))
   (= a 0.0)))
