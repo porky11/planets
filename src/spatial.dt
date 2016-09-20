@@ -28,12 +28,12 @@
     (implement Add (uq F))
     (implement Sub (uq F)))))
 
-(def-type-macro2 State)
-(def-concept State ((T Type) (N Value))
+(def-type-macro2 Motion)
+(def-concept Motion ((T Type) (N Value))
   (let ((n int)
         (valid bool (eval-expression mc (q int) N (cast (# n) (p void))))
         (NN \ (make-node-from-value mc (tri n)))
-        (F \ (qq Force (uq T) (uq N))))
+        (F \ (qq Motion (uq T) (uq N))))
   (qq do
     (def (uq F)
       (struct extern
