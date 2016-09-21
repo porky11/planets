@@ -51,8 +51,10 @@
       (qq do
         (def (uq B)
           (struct intern
-            ((pos (uq A))
-             (mot (uq A))
+            ((pos (struct ((transition (uq A))
+                           (rotation (uq A)))))
+             (mot (struct ((transition (uq A))
+                           (rotation float))))
              (color (Array (uq T) 3))
              (mass (uq T))
              (rad (uq T)))))
@@ -61,8 +63,8 @@
         (def != (fn intern bool ((p0 (ref (uq B))) (p1 (ref (uq B))))
           (not (p= p0 p1))))
         (def act (fn intern bool ((ball (ref (uq B))))
-          (incf (:@ ball pos) (/ (@:@ ball mot) (@:@ ball mass)))
-          (mulf (:@ ball mot) 0.9)))
+          (incf (:@ (:@ ball pos) transition) (/ (@: (@:@ ball mot) transition) (@:@ ball mass)))
+          (mulf (:@ (:@ ball mot) transition) 0.9)))
         (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
           (qq : (uq (uq Ball)) pos)))
         (def mot (macro intern ((Ball (Ball (uq T) (uq N))))
@@ -77,21 +79,23 @@
       (def collide (fn intern void ((p0 (ref (uq T))) (p1 (ref (uq T))))
         (let ((m0 \ (@:@ p0 mass))
               (m1 \ (@:@ p1 mass))
-              (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
+              (disvec \ (- (@: (@:@ p0 pos) transition) (@: (@:@ p1 pos) transition)))
               (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0))))
-          (when (>= dis2 0.0)
+          (when (< 0.0 dis2)
             (let ((dis \ (sqrt dis2))
-                  ;(v0 (/ (@:@ p0 mot) m0))
-                  ;(v1 (/ (@:@ p1 mot) m1))
-                  ;(dv (- v0 v1))
-                  (st \ 0.5)
                   (rs \ (+ (@:@ p0 rad) (@:@ p1 rad)))
                   (acc \ (* disvec (/ (* (* m0 m1) gravity) (* dis dis2)))))
-              (when (< dis (* 1.0 rs))
-                (def acc2 (var auto \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
-                (setf (# acc) acc2))
-              (incf (mot p1) acc)
-              (decf (mot p0) acc))))))))
+              (when (< dis rs)
+                (let ((v0 \ (/ (@: (@:@ p0 mot) transition) m0))
+                      (v1 \ (/ (@: (@:@ p1 mot) transition) m1))
+                      (dv \ (- v0 v1))
+                      (st \ 0.5)
+                      (rn \ 0.5)
+                      (col \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
+                  (setv acc col)))
+              (incf (:@ (mot p1) transition) acc)
+              (decf (:@ (mot p0) transition) acc))))))))
+
   (def-concept-macro whatever intern ((T Type))
     (qq do
       (def = (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
@@ -121,12 +125,12 @@
                 (st \ (@: conn strength))
                 (m0 \ (@:@ p0 mass))
                 (m1 \ (@:@ p1 mass))
-                (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
+                (disvec \ (- (@: (@:@ p0 pos) transition) (@: (@:@ p1 pos) transition)))
                 (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
                 (dis \ (sqrt dis2))
                 (acc \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
-            (incf (:@ p1 mot) acc)
-            (decf (:@ p0 mot) acc)))))))
+            (incf (: (@:@ p1 mot) transition) acc)
+            (decf (: (@:@ p0 mot) transition) acc)))))))
 
 
 
@@ -201,11 +205,15 @@
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
         ((pos
+           ((transition
            ((elements
               (array (* (cos (*' (/ (pi) 64.0) i)) 20.0)
                      (* (sin (*' (/ (pi) 64.0) i)) 20.0)))))
+                     ))
          (mot
+           ((transition
            ((elements (array 0.0 0.0))))
+           ))
          (mass 1.0)
          (color ((elements
                    (array 1.0 0.0 0.0))))
@@ -217,9 +225,13 @@
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
         ((pos
+           ((transition
            ((elements (array 0.0 0.0))))
+           ))
          (mot
+           ((transition
            ((elements (array-of 2 float (array 0.0 0.0)))))
+           ))
          (color ((elements
                    (array 1.0 0.0 0.0))))
          (mass 51200.0)
@@ -246,29 +258,29 @@
         (up-ball3 (UniquePtr (Ball float 2)))
         (up-ball4 (UniquePtr (Ball float 2))))
     (setf ball1
-      ((pos ((elements (array 0.0 21.0))))
-       (mot ((elements (array 0.0 0.0))))
+      ((pos ((transition ((elements (array 0.0 21.0))))))
+       (mot ((transition ((elements (array 0.0 0.0))))))
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 1.0)
        (rad 0.1)))
     (setf ball2
-      ((pos ((elements (array 0.25 20.5))))
-       (mot ((elements (array 0.0 0.0))))
+      ((pos ((transition ((elements (array 0.25 20.5))))))
+       (mot ((transition ((elements (array 0.0 0.0))))))
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 0.25)
        (rad 0.05)))
     (setf ball3
-      ((pos ((elements (array -0.25 20.5))))
-       (mot ((elements (array 0.0 0.0))))
+      ((pos ((transition ((elements (array -0.25 20.5))))))
+       (mot ((transition ((elements (array 0.0 0.0))))))
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 0.25)
        (rad 0.05)))
     (setf ball4
-      ((pos ((elements (array -0.1 21.5))))
-       (mot ((elements (array 0.0 0.0))))
+      ((pos ((transition ((elements (array -0.1 21.5))))))
+       (mot ((transition ((elements (array 0.0 0.0))))))
        (color ((elements
                  (array 0.5 0.0 1.0))))
        (mass 0.03125)
@@ -318,8 +330,8 @@
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
-        ((pos ((elements (array (*' 0.1 i) 25.0))))
-         (mot ((elements (array 0.0 0.0))))
+        ((pos ((transition ((elements (array (*' 0.1 i) 25.0))))))
+         (mot ((transition ((elements (array 0.0 0.0))))))
          (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
          (color ((elements
                    (array 0.0 0.5 0.0))))
@@ -394,7 +406,7 @@
 
 (def blombo-controls (fn intern void (void)
   (using-namespace std
-    (let ((disvec \ (- (@:@ player pos) (@:@ planet pos)))
+    (let ((disvec \ (- (@: (@:@ player pos) transition) (@: (@:@ planet pos) transition)))
           (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
           (dis \ (sqrt dis2)))
     (setv rotvec (@: (/ disvec dis) elements))))
@@ -406,7 +418,7 @@
 
 (def up-controls (fn intern void (void)
   (using-namespace std
-    (let ((disvec \ (- (@:@ player pos) (@:@ planet pos)))
+    (let ((disvec \ (- (@: (@:@ player pos) transition) (@: (@:@ planet pos) transition)))
           (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
           (dis \ (sqrt dis2)))
     (setv rotvec (@: (/ disvec dis) elements))))
@@ -490,7 +502,7 @@
   (display-func (void)
     (using-namespace gl
     (using-namespace std
-      (uniform (get-uniform-location program "cam") (: (@:@ player pos) elements))
+      (uniform (get-uniform-location program "cam") (: (@: (@:@ player pos) transition) elements))
       (clear color)
       (enable-client-state vertex-array)
       (use-program program)

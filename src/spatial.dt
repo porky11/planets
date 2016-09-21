@@ -1,4 +1,5 @@
 (module spatial)
+#|
 
 (import util)
 (import macros)
@@ -7,6 +8,28 @@
 
 (def tri (fn intern int ((x int)))
   (if (= x 1) 0 (+ (- x 1) (tri (- x 1)))))
+
+(def over (fn intern (retval int 0) ((n int) (k int))
+  (for (i \ 1) (<= i k) (incv i)
+    (incf retval (/ (- (+ n 1) i) i)))))
+(def-type-macro3 Multivector)
+(def-concept Multivector extern ((T Type) (D Value) (I Value))
+  (let ((dim int)
+        (ind int)
+        (valid1 bool (eval-expression mc (q int) D (cast (# dim) (p void))))
+        (valid2 bool (eval-expression mc (q int) I (cast (# ind) (p void))))
+        (n int (over dim ind))
+        (N \ (mnfn mc n))
+        (A (qq array-of (uq N) (uq T)))
+        (M (qq Multivector (uq T) (uq D) (uq I))))
+    (qq do
+      (def (uq M) (struct extern ((elements (uq A)))))
+      (def + (fn intern (retval M) ((a (uq M)) (a (uq M)))
+        (mfor i (range (uq N))
+          (setf ($ (@:@ retval elements) i) ())
+
+(def Vector (macro extern (T D I))
+  (qq Multivector (uq T) (uq D) 1))
 
 (def-type-macro2 Force)
 (def-concept Force ((T Type) (N Value))
@@ -60,4 +83,4 @@
 
 
 )
-
+|#

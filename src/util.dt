@@ -22,9 +22,9 @@ Useful for debug reasons, when you know some error appears before this macro is 
 (using-namespace std.macros
 
 
-
 (def is-zero (fn extern bool ((a float))
   (= a 0.0)))
+
 
 (def /0 (macro extern (x y)
   (qq if (is-zero (uq y))
@@ -57,8 +57,22 @@ Useful for debug reasons, when you know some error appears before this macro is 
               (let ((typename (array-of 250 char)))
                 (and (not (make-type-string mc (uq string) T U typename))
                      (return T))
-                (def n (var auto (p DNode) (mnfv mc typename)))
-(return n)))))))))
+                (return (mnfv mc typename))))))))))
+
+(def def-type-macro3
+  (macro extern (name)
+    (let ((buf (array-of 250 char)))
+      (sprintf buf "\"%s\"" (@:@ name token-str))
+      (let ((string \ (std.macros.mnfv mc buf)))
+        (std.macros.qq do
+          (def (uq name)
+            (macro extern (T U V)
+              (let ((typename (array-of 250 char)))
+                (and (not (make-type-string mc (uq string) T U V typename))
+                     (return T))
+                (return (mnfv mc typename))))))))))
+
+
 
 (using-namespace std.macros
 
