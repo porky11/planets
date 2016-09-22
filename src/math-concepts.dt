@@ -30,6 +30,11 @@
     (concept-assert (exists-fn mc (qq (uq T) * (uq T) (uq T))) T "/ is not defined over this type")
     success))
 
+(def-concept Negate (refines Type) (T) 
+  (let ((success \ true))
+    (concept-assert (exists-fn mc (qq (uq T) - (uq T))) T "- is not defined over this type")
+    success))
+
 (def-concept BasicMath (refines Add Sub Div Mul) (T) true)
 
 (def-concept-macro basic-math extern ((T Type))

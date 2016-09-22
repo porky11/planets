@@ -5,8 +5,9 @@
 
 (using-namespace std.macros
 
-(def tri (fn intern int ((x int)))
-  (if (= x 1) 0 (+ (- x 1) (tri (- x 1)))))
+#|
+(def tri (fn intern int ((x int))
+  (if (= x 1) 0 (+ (- x 1) (tri (- x 1))))))
 
 (def-type-macro2 Force)
 (def-concept Force ((T Type) (N Value))
@@ -48,7 +49,7 @@
     (implement Add (uq F))
     (implement Sub (uq F)))))
 
-(def apply-force (fn intern ((
+|#
 
       
 
