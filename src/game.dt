@@ -47,12 +47,15 @@
   (def-type-macro2 Ball)
   (def-concept-macro Ball intern ((T Type) (N Value))
     (let ((B \ (qq Ball (uq T) (uq N)))
-          (A \ (qq Array (uq T) (uq N))))
+          (A \ (qq Array (uq T) (uq N))) ;;vector
+          (V \ T)) ;;bivector or rotor
       (qq do
         (def (uq B)
           (struct intern
             ((pos (uq A))
              (mot (uq A))
+             (rot (uq V))
+             (tor (uq V))
              (color (Array (uq T) 3))
              (mass (uq T))
              (rad (uq T)))))
@@ -62,6 +65,7 @@
           (not (p= p0 p1))))
         (def act (fn intern bool ((ball (ref (uq B))))
           (incf (:@ ball pos) (/ (@:@ ball mot) (@:@ ball mass)))
+          (incf (:@ ball rot) (/ (@:@ ball tor) (@:@ ball mass)))
           (mulf (:@ ball mot) 0.9)))
         (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
           (qq : (uq (uq Ball)) pos)))
@@ -70,28 +74,46 @@
         (implement Struct (Ball (uq T) (uq N)))
         (implement EqualityComparable (Ball (uq T) (uq N))))))
   
-;  (def length-vector (fn intern 
   
+  
+  (def dot (fn intern float ((x (Array float 2)) (y (Array float 2)))
+    (+ (* (@$ x 0) (@$ y 0)) (* (@$ x 1) (@$ y 1)))))
+
   (def-concept-macro collide intern ((T Type))
     (qq using-namespace std
-      (def collide (fn intern void ((p0 (ref (uq T))) (p1 (ref (uq T))))
-        (let ((m0 \ (@:@ p0 mass))
-              (m1 \ (@:@ p1 mass))
-              (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
-              (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0))))
-          (when (>= dis2 0.0)
-            (let ((dis \ (sqrt dis2))
-                  ;(v0 (/ (@:@ p0 mot) m0))
-                  ;(v1 (/ (@:@ p1 mot) m1))
-                  ;(dv (- v0 v1))
-                  (st \ 0.5)
-                  (rs \ (+ (@:@ p0 rad) (@:@ p1 rad)))
-                  (acc \ (* disvec (/ (* (* m0 m1) gravity) (* dis dis2)))))
-              (when (< dis (* 1.0 rs))
-                (def acc2 (var auto \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
-                (setf (# acc) acc2))
-              (incf (mot p1) acc)
-              (decf (mot p0) acc))))))))
+       (def collide (fn intern void ((p0 (ref (uq T))) (p1 (ref (uq T))))
+         (let ((m0 \ (@:@ p0 mass))
+               (m1 \ (@:@ p1 mass))
+               (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
+               (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0))))
+           (when (< 0.0 dis2)
+             (let ((dis \ (sqrt dis2))
+                   (r0 \ (@:@ p0 rad))
+                   (r1 \ (@:@ p1 rad))
+                   (rs \ (+ r0 r1))
+                   (acc \ (* disvec (/ (* (* m0 m1) gravity) (* dis dis2)))))
+               (when (< dis rs)
+                 (let ((v0 \ (/ (@:@ p0 mot) m0))
+                       (v1 \ (/ (@:@ p1 mot) m1))
+                       (dv \ (- v0 v1))
+                       (st \ 0.5)
+                       (rn \ 0.5)
+                       (br \ (+ (* r0 (/ (@:@ p0 tor) m0))
+                                (* r1 (/ (@:@ p1 tor) m1))))
+                       (gr \ (dot (+ (/ v0 m0) (/ v0 m0)) disvec))
+                       (rr \ (* (- br gr) rn))
+                       (mfac \ (/ (* m0 m1) (+ m0 m1)))
+                       (ar \ (* rr mfac))
+                       (dir \ (/ disvec dis))
+                       (s (Array float 2) ((elements (array (* (@$ dir 1) -1.0)
+                                                            (* (@$ dir 0) 1.0)))))
+                       (col \ (* dir (* (* st mfac) (- dis rs)))))
+                   (setv acc col)
+                   (incf (:@ p0 tor) (/ ar r0))
+                   (incf (:@ p1 tor) (/ ar r1))))
+               (incf (mot p1) acc)
+               (decf (mot p0) acc))))))))
+
   (def-concept-macro whatever intern ((T Type))
     (qq do
       (def = (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
@@ -178,16 +200,12 @@
 (def pi (macro intern (void)
   (q 3.14159265358979323846)))
 
-(using-namespace std
-(def init-circle (fn intern void ((circle (p (array-of 256 (array-of 2 float)))))
-    (for (i int 0) (< i 256) (incv i)
-      (setf ($ (@ circle) i)
-        (array (cos (*' (/ (pi) 128.0) i))
-               (sin (*' (/ (pi) 128.0) i)))))))
-)
 
-
-(def circle (var intern (array-of 256 (array-of 2 float))))
+(def quad (var intern (array-of 4 (array-of 2 float))
+  (array (array -1.0 -1.0)
+         (array -1.0 1.0)
+         (array 1.0 1.0)
+         (array 1.0 -1.0))))
 
 (def max (fn intern int ((x int) (y int))
   (if (> x y) x y)))
@@ -227,9 +245,6 @@
       (init up-ball ball)
       ;(setv planet ball)
       (push-back world (move up-ball)))))
-  
-  ;(setv player (get (@$ world 0)))
-  (return)
 ))
 
 (def right-connection (var intern (p (Connection (p (Ball float 2))))))
@@ -337,7 +352,6 @@
   )))
   
   (setv player (get (@$ world 7)))
-  (return)
 ))
 
 (using-namespace gl
@@ -373,10 +387,16 @@
       varying vec2 c;
       uniform vec2 lpos;
       uniform vec3 color;
+      uniform vec2 rot;
       void main(void) {
+        if(length(c)>1.0) {
+          gl_FragColor = vec4(0.0,0.0,0.0,0.0);
+          return;
+        }
         vec2 ldir=normalize(lpos-p);
-        float cn = max(min(1,dot(ldir,c)),0);
-        gl_FragColor = vec4(color*cn, 1);
+        float cr = dot(rot,c);
+        float cn = max(min(1,dot(ldir,c)),0.0);
+        gl_FragColor = vec4(color*cn+vec3(1.0)*cr, 1.0);
       }
 ")
     (compile-shader fragment-shader)
@@ -434,10 +454,9 @@
           (f \ (* arr (* st dir))))
       (incf (:@ player mot) f)))))
 
-(def controls (var intern (p (fn void (void)))))
+(def controls (var intern (p (fn void (void))) (# up-controls)))
 
 (def timer (fn intern void ((a int))
-  (setv controls (# blombo-controls))
   (controls)
 
                                     
@@ -454,8 +473,7 @@
           (let ((p1 \ (get (@ (source b2)))))
             (collide p0 p1) ))))
     (glutPostRedisplay)
-    (glutTimerFunc (/ 1000 32) (# timer) 0)
-    (return)))
+    (glutTimerFunc (/ 1000 32) (# timer) 0)))
 
 
 (using-namespace glut
@@ -474,8 +492,7 @@
   (create-window "test")
 
   (init-program)
-  (init-circle (# circle))
-
+  
   (init-blombo)
   ;(init-snake)
   (init-world)
@@ -499,10 +516,12 @@
       (uniform (get-uniform-location program "rotvec") (# rotvec))
       (in a world
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
+        (uniform (get-uniform-location program "rot") (cos (@:@ (get (@ a)) rot)) 
+                                                      (sin (@:@ (get (@ a)) rot)))
         (uniform (get-uniform-location program "color") (: (@:@ (get (@ a)) color) elements))
         (uniform (get-uniform-location program "scale") (@:@ (get (@ a)) rad))
-        (vertex-pointer 2 float 0 circle)
-        (draw-arrays triangle-fan 0 256))
+        (vertex-pointer 2 float 0 quad)
+        (draw-arrays triangle-fan 0 4))
       (disable-client-state)
       (end)
       (flush)

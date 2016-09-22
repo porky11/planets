@@ -2,7 +2,7 @@
 
 (import util)
 (import macros)
-
+#|
 (using-namespace std.macros
 
 (def tri (fn intern int ((x int)))
@@ -60,4 +60,4 @@
 
 
 )
-
+|#
