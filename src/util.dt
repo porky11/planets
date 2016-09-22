@@ -79,7 +79,7 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (printf "\n")
   (qq no-op)))
 
-(ignore def arg-list-names (fn extern (retval (p DNode)) ((mc (p MContext)) (form (p DNode)))
+(def arg-list-names (fn extern (retval (p DNode)) ((mc (p MContext)) (form (p DNode)))
   (setf retval (copy mc true form))
   (def last-node (var auto \ (nullptr (p DNode))))
   (walk-nodes (@ retval) mc (cast last-node (p void))
@@ -104,18 +104,18 @@ Useful for debug reasons, when you know some error appears before this macro is 
       (def (uq name) (fn (uq linkage) (uq type) (uq args)
         ((uq cname) (uql arg-list))))))))
 
-(def defc (macro extern (name linkage cname type args)
+(def defc-old (macro extern (name linkage cname type args)
   (let ((fdef \ (qq (uq cname))))
     (qq do
       (def (uq cname) (fn extern-c (uq type) (uq args)))
       (def (uq name) (fn (uq linkage) (uq type) (uq args)
         (uq fdef)))))))
 
-(def defc (macro extern (name linkage cname type args ...)
+(def defc-old (macro extern (name linkage cname type args ...)
   (let ((arg-list \ (get-varargs-list (- (arg-count mc) 5)))
         (fdef \ (if (null arg-list) (qq (uq cname)) (qq (uq cname) (uql arg-list)))))
-    ;(print fdef)
-    ;(printf "\n")
+    (print fdef)
+    (printf "\n")
     (qq do
       (def (uq cname) (fn extern-c (uq type) (uq args)))
       (def (uq name) (fn (uq linkage) (uq type) (uq args)
