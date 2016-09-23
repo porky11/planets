@@ -111,8 +111,8 @@
                        (rv \ (* s rr))
                        (col \ (* dir (* (* st mfac) (- dis rs)))))
                    (setv acc (+ col (* rv 0.0)))
-                     (decf (:@ p0 tor) rr)
-                     (decf (:@ p1 tor) rr)))
+                   (mfor p (p0 p1)
+                     (decf (:@ p tor) rr))))
                (incf (:@ p1 frc) acc)
                (decf (:@ p0 frc) acc))))))))
 
