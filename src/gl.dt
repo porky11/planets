@@ -32,7 +32,7 @@
                        (scissor 0x80000)
                        (multisample 0x20000000)
                        (all-attrib 0xFFFFFFFF)))
-|#                         
+|#
     
   (def-enum clear-buffer-mask
     extern uint
@@ -41,6 +41,9 @@
        (stencil 0x400)
        (color 0x4000)
        (coverage 0x8000)))
+  
+  (def-enum capability extern uint
+    ((blend 0xBE2)))
 
 
 #|  (def-enum client-attrib-mask
@@ -98,15 +101,19 @@
 
 ;;cfun
 
+(namespace gl
 (def glClear    (fn extern-c void ((mask uint))))
 (def glBegin    (fn extern-c void ((mode uint))))
 (def glVertex3f (fn extern-c void ((x float)
                                    (y float)
                                    (z float))))
+
+(def glEnable (fn extern-c void ((a capability))))
+(def glDisable (fn extern-c void ((a capability))))
 (def glEnd      (fn extern-c void (void)))
 (def glFlush    (fn extern-c void (void)))
 
-(def glEnableClientState (fn extern-c void ((array uint))))
+(def glEnableClientState (fn extern-c void ((array array))))
 (def glDisableClientState (fn extern-c void (void)))
 (def glDrawArrays (fn extern-c void ((mode uint) (first int) (count int))))
 (def glDrawElements (fn extern-c void ((mode uint) (first int) (count int) (indices (p void)))))
@@ -151,7 +158,7 @@
 (def glUniform3uiv (fn extern-c void ((location int) (count uint) (value (const (p uint))))))
 (def glUniform4uiv (fn extern-c void ((location int) (count uint) (value (const (p uint))))))
 
-
+)
 
 ;;;types
 (namespace gl
@@ -264,7 +271,7 @@
   (def end (fn extern void (void)
     (glEnd)))
   (def enable-client-state (fn extern void ((array array))
-    (glEnableClientState (value array))))
+    (glEnableClientState array)))
   (def disable-client-state (fn extern void (void)
     (glDisableClientState)))
   (def draw-arrays (fn extern void ((mode primitive) (first int) (count int))

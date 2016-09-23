@@ -17,6 +17,8 @@
 (import vector)
 (import assert)
 
+(def pi (macro intern (void)
+  (q 3.14159265358979323846)))
 
 (def pressed (var intern (array-of 256 bool)))
 
@@ -53,7 +55,8 @@
         (def (uq B)
           (struct intern
             ((pos (uq A))
-             (mot (uq A))
+             (vel (uq A))
+             (frc (uq A))
              (rot (uq V))
              (tor (uq V))
              (color (Array (uq T) 3))
@@ -64,13 +67,11 @@
         (def != (fn intern bool ((p0 (ref (uq B))) (p1 (ref (uq B))))
           (not (p= p0 p1))))
         (def act (fn intern bool ((ball (ref (uq B))))
-          (incf (:@ ball pos) (/ (@:@ ball mot) (@:@ ball mass)))
-          (incf (:@ ball rot) (/ (@:@ ball tor) (@:@ ball mass)))
-          (mulf (:@ ball mot) 0.9)))
-        (def pos (macro intern ((Ball (Ball (uq T) (uq N))))
-          (qq : (uq (uq Ball)) pos)))
-        (def mot (macro intern ((Ball (Ball (uq T) (uq N))))
-          (qq : (uq (uq Ball)) mot)))
+          (setf (:@ ball vel) (/ (@:@ ball frc) (@:@ ball mass)))
+          (incf (:@ ball pos) (@:@ ball vel))
+          (incf (:@ ball rot) (/ (@:@ ball tor) (* (* (pi) 2.0) (* (@:@ ball mass) (@:@ ball rad)))))
+          (mulf (:@ ball frc) 0.9)
+          (mulf (:@ ball tor) 0.9)))
         (implement Struct (Ball (uq T) (uq N)))
         (implement EqualityComparable (Ball (uq T) (uq N))))))
   
@@ -81,38 +82,39 @@
 
   (def-concept-macro collide intern ((T Type))
     (qq using-namespace std
+       ;(import operator-macros)
        (def collide (fn intern void ((p0 (ref (uq T))) (p1 (ref (uq T))))
          (let ((m0 \ (@:@ p0 mass))
                (m1 \ (@:@ p1 mass))
-               (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
-               (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0))))
+               (disr \ (- (@:@ p0 pos) (@:@ p1 pos)))
+               (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0))))
            (when (< 0.0 dis2)
              (let ((dis \ (sqrt dis2))
                    (r0 \ (@:@ p0 rad))
                    (r1 \ (@:@ p1 rad))
                    (rs \ (+ r0 r1))
-                   (acc \ (* disvec (/ (* (* m0 m1) gravity) (* dis dis2)))))
+                   (acc \ (* disr (/ (* (* m0 m1) gravity) (* dis dis2)))))
                (when (< dis rs)
-                 (let ((v0 \ (/ (@:@ p0 mot) m0))
-                       (v1 \ (/ (@:@ p1 mot) m1))
+                 (let ((v0 \ (@:@ p0 vel))
+                       (v1 \ (@:@ p1 vel))
                        (dv \ (- v0 v1))
                        (st \ 0.5)
                        (rn \ 0.5)
-                       (br \ (+ (* r0 (/ (@:@ p0 tor) m0))
-                                (* r1 (/ (@:@ p1 tor) m1))))
-                       (gr \ (dot (+ (/ v0 m0) (/ v0 m0)) disvec))
-                       (rr \ (* (- br gr) rn))
+                       (dir \ (/ disr dis))
+                       (s (Array float 2) ((elements (array (* (@$ dir 1) 1.0)
+                                                            (* (@$ dir 0) -1.0)))))
+                       (sr \ (do (+ (/ (@:@ p0 tor) m0)
+                                    (/ (@:@ p1 tor) m1))))
+                       (vr \ (do (dot (+ (/ v0 m0) (/ v1 m1)) s)))
                        (mfac \ (/ (* m0 m1) (+ m0 m1)))
-                       (ar \ (* rr mfac))
-                       (dir \ (/ disvec dis))
-                       (s (Array float 2) ((elements (array (* (@$ dir 1) -1.0)
-                                                            (* (@$ dir 0) 1.0)))))
+                       (rr \ (* (+ sr vr) (* rn mfac)))
+                       (rv \ (* s rr))
                        (col \ (* dir (* (* st mfac) (- dis rs)))))
-                   (setv acc col)
-                   (incf (:@ p0 tor) (/ ar r0))
-                   (incf (:@ p1 tor) (/ ar r1))))
-               (incf (mot p1) acc)
-               (decf (mot p0) acc))))))))
+                   (setv acc (+ col (* rv 0.0)))
+                     (decf (:@ p0 tor) rr)
+                     (decf (:@ p1 tor) rr)))
+               (incf (:@ p1 frc) acc)
+               (decf (:@ p0 frc) acc))))))))
 
   (def-concept-macro whatever intern ((T Type))
     (qq do
@@ -143,12 +145,12 @@
                 (st \ (@: conn strength))
                 (m0 \ (@:@ p0 mass))
                 (m1 \ (@:@ p1 mass))
-                (disvec \ (- (@:@ p0 pos) (@:@ p1 pos)))
-                (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
+                (disr \ (- (@:@ p0 pos) (@:@ p1 pos)))
+                (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
                 (dis \ (sqrt dis2))
-                (acc \ (* disvec (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
-            (incf (:@ p1 mot) acc)
-            (decf (:@ p0 mot) acc)))))))
+                (acc \ (* disr (* (* st (/ (* m0 m1) (+ m0 m1))) (/ (- dis rs) dis)))))
+            (incf (:@ p1 frc) acc)
+            (decf (:@ p0 frc) acc)))))))
 
 
 
@@ -162,8 +164,6 @@
         (struct intern ((vector (Vector (uq T))))))))
 
   (instantiate Ball float 2)
-  (def-ptr-macro pos intern (Ball float 2))
-  (def-ptr-macro mot intern (Ball float 2))
   (instantiate collide (Ball float 2))
   (def-ptr-macro2 collide intern (Ball float 2))
   (instantiate UniquePtr (Ball float 2))
@@ -197,8 +197,6 @@
 
 (def connections (var intern (Vector (Connection (p (Ball float 2))))))
 
-(def pi (macro intern (void)
-  (q 3.14159265358979323846)))
 
 
 (def quad (var intern (array-of 4 (array-of 2 float))
@@ -222,7 +220,7 @@
            ((elements
               (array (* (cos (*' (/ (pi) 64.0) i)) 20.0)
                      (* (sin (*' (/ (pi) 64.0) i)) 20.0)))))
-         (mot
+         (frc
            ((elements (array 0.0 0.0))))
          (mass 1.0)
          (color ((elements
@@ -236,14 +234,16 @@
       (setf ball
         ((pos
            ((elements (array 0.0 0.0))))
-         (mot
+         (frc
            ((elements (array-of 2 float (array 0.0 0.0)))))
          (color ((elements
-                   (array 1.0 0.0 0.0))))
+                   (array 0.0 0.0 0.0))))
+         (rot 0.0)
+         (tor 2000.0)
          (mass 51200.0)
          (rad 16.0)))
       (init up-ball ball)
-      ;(setv planet ball)
+      (setv planet ball)
       (push-back world (move up-ball)))))
 ))
 
@@ -262,28 +262,28 @@
         (up-ball4 (UniquePtr (Ball float 2))))
     (setf ball1
       ((pos ((elements (array 0.0 21.0))))
-       (mot ((elements (array 0.0 0.0))))
+       (frc ((elements (array 0.0 0.0))))
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 1.0)
        (rad 0.1)))
     (setf ball2
       ((pos ((elements (array 0.25 20.5))))
-       (mot ((elements (array 0.0 0.0))))
+       (frc ((elements (array 0.0 0.0))))
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 0.25)
        (rad 0.05)))
     (setf ball3
       ((pos ((elements (array -0.25 20.5))))
-       (mot ((elements (array 0.0 0.0))))
+       (frc ((elements (array 0.0 0.0))))
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 0.25)
        (rad 0.05)))
     (setf ball4
       ((pos ((elements (array -0.1 21.5))))
-       (mot ((elements (array 0.0 0.0))))
+       (frc ((elements (array 0.0 0.0))))
        (color ((elements
                  (array 0.5 0.0 1.0))))
        (mass 0.03125)
@@ -329,12 +329,12 @@
 (def init-snake (fn intern void (void)
   (using-namespace std
     (for ((i \ 0) (last \ (nullptr (Ball float 2))))
-         (< i 8) (incv i)
+         (< i 2) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
         ((pos ((elements (array (*' 0.1 i) 25.0))))
-         (mot ((elements (array 0.0 0.0))))
+         (frc ((elements (array 0.0 0.0))))
          (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
          (color ((elements
                    (array 0.0 0.5 0.0))))
@@ -351,7 +351,7 @@
       (push-back world (move up-ball))
   )))
   
-  (setv player (get (@$ world 7)))
+  (setv player (get (@$ world 0)))
 ))
 
 (using-namespace gl
@@ -390,8 +390,7 @@
       uniform vec2 rot;
       void main(void) {
         if(length(c)>1.0) {
-          gl_FragColor = vec4(0.0,0.0,0.0,0.0);
-          return;
+          discard;
         }
         vec2 ldir=normalize(lpos-p);
         float cr = dot(rot,c);
@@ -407,17 +406,16 @@
 )
 
 (def x (var intern float 0.0))
-(def rot (var intern float 0.0))
 
 (def rotvec (var intern (array-of 2 float)))
 
 
 (def blombo-controls (fn intern void (void)
   (using-namespace std
-    (let ((disvec \ (- (@:@ player pos) (@:@ planet pos)))
-          (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
+    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
           (dis \ (sqrt dis2)))
-    (setv rotvec (@: (/ disvec dis) elements))))
+    (setv rotvec (@: (/ disr dis) elements))))
   (let ((blen \ (- (if (is-pressed (@$ "a" 0)) 1.0 0.0) (if (is-pressed (@$ "d" 0)) 1.0 0.0)))
         (st \ 0.075)
         (alen \ (* st blen)))
@@ -426,10 +424,10 @@
 
 (def up-controls (fn intern void (void)
   (using-namespace std
-    (let ((disvec \ (- (@:@ player pos) (@:@ planet pos)))
-          (dis2 \ (+ (pow (@$ disvec 0) 2.0) (pow (@$ disvec 1) 2.0)))
+    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
           (dis \ (sqrt dis2)))
-    (setv rotvec (@: (/ disvec dis) elements))))
+    (setv rotvec (@: (/ disr dis) elements))))
   (def up (var auto (Array float 2)
     ((elements (array
        (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
@@ -440,19 +438,20 @@
     ((elements (array
       (@$ up 1)
       (- 0.0 (@$ up 0)))))))
-  (incf (:@ player mot) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
+  (incf (:@ player frc) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
 
 (def rot-controls (fn intern void (void)
-  (incf (# rot) (+ (if (is-pressed (@$ "a" 0)) 0.025 0.0)
-                       (if (is-pressed (@$ "d" 0)) -0.025 0.0)))
-  (using-namespace std
-    (setv rotvec (array (cos rot) (sin rot)))
-    (let ((arr (Array float 2) ((elements (array (- 0.0 (sin rot)) (cos rot)))))
-          (st \ 0.01)
-          (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
-                    (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
-          (f \ (* arr (* st dir))))
-      (incf (:@ player mot) f)))))
+  (let ((rot \ (:@ player rot)))
+    (incf (:@ player tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
+                 (if (is-pressed (@$ "d" 0)) -0.0025 0.0)))
+    (using-namespace std
+      (setv rotvec (array (cos (@ rot)) (sin (@ rot))))
+      (let ((arr (Array float 2) ((elements rotvec)))
+            (st \ 0.001)
+            (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
+                      (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
+            (f \ (* arr (* st dir))))
+        (incf (:@ player frc) f))))))
 
 (def controls (var intern (p (fn void (void))) (# up-controls)))
 
@@ -461,12 +460,12 @@
 
                                     
 
-  (in de connections
-    (act (@ de)))
   (in a world
     (let ((ball \ (get (@ a))))
       (act (@ ball))
       ))
+  (in de connections
+    (act (@ de)))
   (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
     (let ((p0 \ (get (@ (source b)))))
       (for ((b2 \ (successor b)) (e \ (end world))) (< b2 e) (setv b2 (successor b2))
@@ -493,8 +492,8 @@
 
   (init-program)
   
-  (init-blombo)
   ;(init-snake)
+  (init-blombo)
   (init-world)
   (timer 0)
 
