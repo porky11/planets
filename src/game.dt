@@ -36,6 +36,7 @@
 (def gravity (var intern float 0.00001))
 
 
+
 (using-namespace std.macros
 (using-namespace std.concepts
   (implement BasicMath float)
@@ -69,7 +70,7 @@
         (def act (fn intern bool ((ball (ref (uq B))))
           (setf (:@ ball vel) (/ (@:@ ball frc) (@:@ ball mass)))
           (incf (:@ ball pos) (@:@ ball vel))
-          (incf (:@ ball rot) (/ (@:@ ball tor) (* (* (pi) 2.0) (* (@:@ ball mass) (@:@ ball rad)))))
+          (incf (:@ ball rot) (/ (@:@ ball tor) (* (* (pi) 1.0) (* (@:@ ball mass) (@:@ ball rad)))))
           (mulf (:@ ball frc) 0.9)
           (mulf (:@ ball tor) 0.9)))
         (implement Struct (Ball (uq T) (uq N)))
@@ -101,16 +102,16 @@
                        (st \ 0.5)
                        (rn \ 0.5)
                        (dir \ (/ disr dis))
-                       (s (Array float 2) ((elements (array (* (@$ dir 1) 1.0)
-                                                            (* (@$ dir 0) -1.0)))))
+                       (s (Array float 2) ((elements (array (* (@$ dir 1) -1.0)
+                                                            (* (@$ dir 0) 1.0)))))
                        (sr \ (do (+ (/ (@:@ p0 tor) m0)
-                                    (/ (@:@ p1 tor) m1))))
-                       (vr \ (do (dot (+ (/ v0 m0) (/ v1 m1)) s)))
+                                    (/ (@:@ p1 tor) m1)) ))
+                       (vr \ (do (dot (- v0 v1) s) ))
                        (mfac \ (/ (* m0 m1) (+ m0 m1)))
-                       (rr \ (* (+ sr vr) (* rn mfac)))
+                       (rr \ (* (- sr vr) (* rn mfac)))
                        (rv \ (* s rr))
                        (col \ (* dir (* (* st mfac) (- dis rs)))))
-                   (setv acc (+ col (* rv 0.0)))
+                   (setv acc (+ col (* rv -1.0)))
                    (mfor p (p0 p1)
                      (decf (:@ p tor) rr))))
                (incf (:@ p1 frc) acc)
@@ -218,14 +219,16 @@
       (setf ball
         ((pos
            ((elements
-              (array (* (cos (*' (/ (pi) 64.0) i)) 20.0)
-                     (* (sin (*' (/ (pi) 64.0) i)) 20.0)))))
+              (array (* (cos (*' (/ (pi) 32.0) i)) 20.0)
+                     (* (sin (*' (/ (pi) 32.0) i)) 20.0)))))
          (frc
            ((elements (array 0.0 0.0))))
          (mass 1.0)
+         (rot 0.0)
+         (tor 0.0)
          (color ((elements
                    (array 1.0 0.0 0.0))))
-         (rad 0.1)))
+         (rad 0.3)))
       (init up-ball ball)
       (push-back world (move up-ball))))
     (for (i \ 0) (< i 1) (incv i)
@@ -237,9 +240,9 @@
          (frc
            ((elements (array-of 2 float (array 0.0 0.0)))))
          (color ((elements
-                   (array 0.0 0.0 0.0))))
+                   (array 1.0 0.0 0.0))))
          (rot 0.0)
-         (tor 2000.0)
+         (tor 5000.0)
          (mass 51200.0)
          (rad 16.0)))
       (init up-ball ball)
@@ -266,6 +269,8 @@
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 1.0)
+         (rot 0.0)
+         (tor 0.0)
        (rad 0.1)))
     (setf ball2
       ((pos ((elements (array 0.25 20.5))))
@@ -273,6 +278,8 @@
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 0.25)
+         (rot 0.0)
+         (tor 0.0)
        (rad 0.05)))
     (setf ball3
       ((pos ((elements (array -0.25 20.5))))
@@ -280,6 +287,8 @@
        (color ((elements
                  (array 1.0 1.0 0.0))))
        (mass 0.25)
+         (rot 0.0)
+         (tor 0.0)
        (rad 0.05)))
     (setf ball4
       ((pos ((elements (array -0.1 21.5))))
@@ -287,6 +296,8 @@
        (color ((elements
                  (array 0.5 0.0 1.0))))
        (mass 0.03125)
+         (rot 0.0)
+         (tor 0.0)
        (rad 0.0125)))
     (init up-ball1 ball1)
     (init up-ball2 ball2)
@@ -328,19 +339,23 @@
 
 (def init-snake (fn intern void (void)
   (using-namespace std
-    (for ((i \ 0) (last \ (nullptr (Ball float 2))))
-         (< i 2) (incv i)
+    (for ((i \ 8) (last \ (nullptr (Ball float 2))))
+         (< i 15) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
         ((pos ((elements (array (*' 0.1 i) 25.0))))
          (frc ((elements (array 0.0 0.0))))
          (mass (*' 0.1 (+ (min i (- 15 i)) 1)))
+         (rot 0.0)
+         (tor 0.0)
          (color ((elements
                    (array 0.0 0.5 0.0))))
          (rad (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))))
       (init up-ball ball)
-      (when (not (null last))
+      (when (null last)
+        (setv player ball))
+      (ignore when (not (null last))
         (let ((conn (Connection (p (Ball float 2)))
                     ((object0 last)
                      (object1 ball)
@@ -351,7 +366,7 @@
       (push-back world (move up-ball))
   )))
   
-  (setv player (get (@$ world 0)))
+  ;(setv player (get (@$ world 7)))
 ))
 
 (using-namespace gl
@@ -393,9 +408,10 @@
           discard;
         }
         vec2 ldir=normalize(lpos-p);
-        float cr = dot(rot,c);
-        float cn = max(min(1,dot(ldir,c)),0.0);
-        gl_FragColor = vec4(color*cn+vec3(1.0)*cr, 1.0);
+        vec2 ccr = (rot.x*c+rot.y*vec2(c.y,-c.x));
+        vec3 cr = vec3(1.0,0.25,0.25)*mod(ccr.x*4.0,1.0)+vec3(0.25,1.0,1.0)*mod(ccr.y*4.0, 1.0);
+        float cn = max(dot(ldir,c),0.0)/4.0*3.0+0.25;
+        gl_FragColor = vec4(color*cr*cn, 1.0);
       }
 ")
     (compile-shader fragment-shader)
@@ -407,7 +423,7 @@
 
 (def x (var intern float 0.0))
 
-(def rotvec (var intern (array-of 2 float)))
+(def rotvec (var intern (array-of 2 float) (array 1.0 0.0)))
 
 
 (def blombo-controls (fn intern void (void)
@@ -453,12 +469,10 @@
             (f \ (* arr (* st dir))))
         (incf (:@ player frc) f))))))
 
-(def controls (var intern (p (fn void (void))) (# up-controls)))
+(def controls (var intern (p (fn void (void))) (# rot-controls)))
 
 (def timer (fn intern void ((a int))
   (controls)
-
-                                    
 
   (in a world
     (let ((ball \ (get (@ a))))
@@ -492,8 +506,8 @@
 
   (init-program)
   
-  ;(init-snake)
-  (init-blombo)
+  (init-snake)
+  ;(init-blombo)
   (init-world)
   (timer 0)
 
