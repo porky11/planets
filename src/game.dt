@@ -71,8 +71,8 @@
           (setf (:@ ball vel) (/ (@:@ ball frc) (@:@ ball mass)))
           (incf (:@ ball pos) (@:@ ball vel))
           (incf (:@ ball rot) (/ (@:@ ball tor) (* (* (pi) 1.0) (* (@:@ ball mass) (@:@ ball rad)))))
-          (mulf (:@ ball frc) 0.9)
-          (mulf (:@ ball tor) 0.9)))
+          (mulf (:@ ball frc) 0.95)
+          (mulf (:@ ball tor) 0.95)))
         (implement Struct (Ball (uq T) (uq N)))
         (implement EqualityComparable (Ball (uq T) (uq N))))))
   
@@ -100,7 +100,7 @@
                        (v1 \ (@:@ p1 vel))
                        (dv \ (- v0 v1))
                        (st \ 0.5)
-                       (rn \ 0.5)
+                       (rn \ 0.05)
                        (dir \ (/ disr dis))
                        (s (Array float 2) ((elements (array (* (@$ dir 1) -1.0)
                                                             (* (@$ dir 0) 1.0)))))
@@ -196,6 +196,9 @@
 (def player (var intern (p (Ball float 2))))
 (def planet (var intern (p (Ball float 2))))
 
+(def wheel1 (var intern (p (Ball float 2))))
+(def wheel2 (var intern (p (Ball float 2))))
+
 (def connections (var intern (Vector (Connection (p (Ball float 2))))))
 
 
@@ -213,7 +216,7 @@
 
 (def init-world (fn intern void (void)
   (using-namespace std
-    (for (i \ 0) (< i 32) (incv i)
+    (for (i \ 0) (< i 16) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
       (setf ball
@@ -223,12 +226,12 @@
                      (* (sin (*' (/ (pi) 32.0) i)) 20.0)))))
          (frc
            ((elements (array 0.0 0.0))))
-         (mass 1.0)
+         (mass 0.25)
          (rot 0.0)
          (tor 0.0)
          (color ((elements
                    (array 1.0 0.0 0.0))))
-         (rad 0.3)))
+         (rad 0.05)))
       (init up-ball ball)
       (push-back world (move up-ball))))
     (for (i \ 0) (< i 1) (incv i)
@@ -304,6 +307,8 @@
     (init up-ball3 ball3)
     (init up-ball4 ball4)
     (setv player ball1)
+    (setv wheel1 ball2)
+    (setv wheel2 ball3)
     (setv planet ball4)
     (push-back world (move up-ball1))
     (push-back world (move up-ball2))
@@ -323,7 +328,7 @@
                  ((object0 ball2)
                   (object1 ball3)
                   (length 0.5)
-                  (strength 0.25)))
+                  (strength 0.1)))
           (conn4 (Connection (p (Ball float 2)))
                  ((object0 ball1)
                   (object1 ball4)
@@ -355,7 +360,7 @@
       (init up-ball ball)
       (when (null last)
         (setv player ball))
-      (ignore when (not (null last))
+      (when (not (null last))
         (let ((conn (Connection (p (Ball float 2)))
                     ((object0 last)
                      (object1 ball)
@@ -438,6 +443,26 @@
     (setf (:@ left-connection length) (- 0.5 alen))
     (setf (:@ right-connection length) (+ 0.5 alen)))))
 
+(def wheel-controls (fn intern void (void)
+  (using-namespace std
+    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
+          (dis \ (sqrt dis2)))
+    (setv rotvec (@: (/ disr dis) elements))))
+  (let ((blen \ (- (if (is-pressed (@$ "w" 0)) 1.0 0.0) (if (is-pressed (@$ "s" 0)) 1.0 0.0)))
+        (st \ 0.005)
+        (alen \ (* st blen)))
+    (incf (:@ left-connection length) alen)
+    (incf (:@ right-connection length) alen))
+  (mfor wheel (wheel1 wheel2)
+    (incf (:@ wheel tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
+                 (if (is-pressed (@$ "d" 0)) -0.0025 0.0))))
+  (using-namespace std
+    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
+          (dis \ (sqrt dis2)))
+    (setv rotvec (@: (/ disr dis) elements))))))
+
 (def up-controls (fn intern void (void)
   (using-namespace std
     (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
@@ -469,7 +494,7 @@
             (f \ (* arr (* st dir))))
         (incf (:@ player frc) f))))))
 
-(def controls (var intern (p (fn void (void))) (# rot-controls)))
+(def controls (var intern (p (fn void (void))) (# wheel-controls)))
 
 (def timer (fn intern void ((a int))
   (controls)
@@ -506,9 +531,9 @@
 
   (init-program)
   
-  (init-snake)
-  ;(init-blombo)
+  ;(init-snake)
   (init-world)
+  (init-blombo)
   (timer 0)
 
   (glutKeyboardFunc (fn void ((key char) (x int) (y int))
