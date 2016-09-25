@@ -1,6 +1,7 @@
 (module util)
 
 (import macros)
+(import concepts)
 (import cstdlib)
 
 #|
@@ -21,6 +22,9 @@ Useful for debug reasons, when you know some error appears before this macro is 
 
 (using-namespace std.macros
 
+(def ignore (macro extern (rest)
+  (qq no-op)))
+
 
 
 (def is-zero (fn extern bool ((a float))
@@ -31,19 +35,27 @@ Useful for debug reasons, when you know some error appears before this macro is 
     (* (uq x) (uq y))
     (/ (uq x) (uq y)))))
 
-(def when (macro extern (con ...)
-  (qq if (uq con) (do (uql (get-varargs-list (- (arg-count mc) 1)))) false)))
+(def when (macro extern (con rest)
+  (def list (var auto \ (get-varargs-list mc (- (arg-count mc) 1) rest)))
+  (qq if (uq con) (do (uql list)) false)))
 
-(def in (macro extern (name value ...)
-  (let ((en \ (make-gensym-var-node mc))
+(def unless (macro extern (con rest)
+  (def list (var auto \ (get-varargs-list mc (- (arg-count mc) 1) rest)))
+  (qq if (uq con) false (do (uql list)))))
+
+(def in (macro extern (name value rest)
+  (let ((list \ (get-varargs-list mc (- (arg-count mc) 2) rest))
+        (en \ (make-gensym-var-node mc))
         (bn \ (make-gensym-var-node mc))
         (val \ (make-gensym-var-node mc)))
     (qq for ( #| ((uq val) \ (move (uq value))) |# ((uq bn) \ (begin (uq value))) ((uq en) \ (end (uq value))))
             (< (uq bn) (uq en))
             (setv (uq bn) (successor (uq bn)))
       (let (((uq name) \ (source (uq bn))))
-        (uql (get-varargs-list (- (arg-count mc) 2))))))))
+        (uql list))))))
 )
+
+(using-namespace std.macros
 
 
 (def def-type-macro2
@@ -51,19 +63,69 @@ Useful for debug reasons, when you know some error appears before this macro is 
     (let ((buf (array-of 250 char)))
       (sprintf buf "\"%s\"" (@:@ name token-str))
       (let ((string \ (std.macros.mnfv mc buf)))
-        (std.macros.qq do
+        (qq do
           (def (uq name)
             (macro extern (T U)
               (let ((typename (array-of 250 char)))
                 (and (not (make-type-string mc (uq string) T U typename))
                      (return T))
                 (def n (var auto (p DNode) (mnfv mc typename)))
-(return n)))))))))
+                n))))))))
 
-(using-namespace std.macros
+(ignore def def-type-macro2
+  (macro extern (macro-name name)
+    (let ((buf (array-of 250 char)))
+      (sprintf buf "\"%s\"" (@:@ name token-str))
+      (let ((string \ (std.macros.mnfv mc buf)))
+        (qq do
+          (def (uq macro-name)
+            (macro extern (T U)
+              (let ((typename (array-of 250 char)))
+                (and (not (make-type-string mc (uq string) T U typename))
+                     (return T))
+                (def n (var auto (p DNode) (mnfv mc typename)))
+                n))))))))
 
-(def ignore (macro extern (...)
-  (qq no-op)))
+(def as-macro (macro extern (rest)
+  (let ((macro-name \ (make-gensym-var-node mc)))
+    (qq do
+      (def (uq macro-name) (macro extern (void)
+        (uql (get-varargs-list mc (arg-count mc) rest))))
+      ((uq macro-name))))))
+
+(ignore def make-type-node
+  (fn extern (p DNode) ((mc (p MContext)) (name (p DNode)) (T (p DNode)) (U (p DNode)))
+    (let ((buf (array-of 250 char)))
+      (sprintf buf "\"%s\"" (@:@ name token-str))
+      (let ((string \ (std.macros.mnfv mc buf)))
+        (qq do
+          (as-macro
+            (let ((typename (array-of 250 char)))
+              (and (not (make-type-string mc (uq string) (q (uq T)) (q (uq U)) typename))
+                   (return T))
+              (def n (var auto (p DNode) (mnfv mc typename)))
+              n)))))))
+
+
+(using-namespace std.concepts
+(def def-type-macro2+
+  (macro extern (name)
+    (let ((buf (array-of 250 char)))
+      (sprintf buf "\"%s\"" (@:@ name token-str))
+      (let ((string \ (std.macros.mnfv mc buf)))
+        (qq do
+          (def (uq name)
+            (macro extern (T U)
+              (let ((typename (array-of 250 char)))
+                (and (not (make-type-string mc (uq string) T U typename))
+                     (return T))
+                (def n (var auto (p DNode) (mnfv mc typename)))
+                (if (exists-type mc typename)
+                    n
+                    (do
+                      (qq instantiate (uq (uq name)) (uq (uq T)) (uq (uq U)))
+                      n))))))))))
+)
 
 (def def-ptr-macro (macro extern (name linkage type)
   (qq using-namespace std.macros
@@ -99,5 +161,22 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (let ((pos \ (make-gensym-var-node mc)))
     (qq let (((uq pos) \ (uq val)))
       (setf (uq pos) (/ (@ (uq pos)) (uq res)))))))
+
+(ignore using-namespace std.concepts
+(def + (macro extern (a b)
+  (let ((A \ (type-of mc a false))
+        (B \ (type-of mc b false)))
+      (ignore when (= A B)
+        (report-error mc "For + both types should be the same")
+        (return (qq no-op)))
+      (qq do
+        (instantiate + (uq A))
+        (as-macro
+          (if (exists-fn (uq A) + (uq A) (uq A))
+            (qq + (uq a) (uq b))
+            (qq no-op)))))))
 )
+)
+
+
 

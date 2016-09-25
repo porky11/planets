@@ -26,12 +26,10 @@
   (@$ pressed key)))
 
 (def press (fn intern void ((key char))
-  (setf ($ pressed key) true)
-  (return)))
+  (setf ($ pressed key) true)))
 
 (def release (fn intern void ((key char))
-  (setf ($ pressed key) false)
-  (return)))
+  (setf ($ pressed key) false)))
 
 (def gravity (var intern float 0.00001))
 
@@ -39,6 +37,7 @@
 
 (using-namespace std.macros
 (using-namespace std.concepts
+
   (implement BasicMath float)
 
   (instantiate Array float 2)
@@ -78,9 +77,6 @@
   
   
   
-  (def dot (fn intern float ((x (Array float 2)) (y (Array float 2)))
-    (+ (* (@$ x 0) (@$ y 0)) (* (@$ x 1) (@$ y 1)))))
-
   (def-concept-macro collide intern ((T Type))
     (qq using-namespace std
        ;(import operator-macros)
@@ -117,18 +113,6 @@
                (incf (:@ p1 frc) acc)
                (decf (:@ p0 frc) acc))))))))
 
-  (def-concept-macro whatever intern ((T Type))
-    (qq do
-      (def = (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
-                              (p1 (ref (const (UniquePtr (uq T))))))
-        (p= p0 p1)))
-      (def != (fn intern bool ((p0 (ref (const (UniquePtr (uq T)))))
-                               (p1 (ref (const (UniquePtr (uq T))))))
-        (not (p= p0 p1))))
-      (implement EqualityComparable (UniquePtr (uq T)))
-      (instantiate swap (UniquePtr (uq T)))
-      (implement Swappable (UniquePtr (uq T)))
-      (instantiate Vector (UniquePtr (uq T)))))
 
   (def-type-macro Connection)
   (def-concept-macro Connection intern ((T Type))
@@ -164,44 +148,46 @@
       (def (Cluster (uq T))
         (struct intern ((vector (Vector (uq T))))))))
 
-  (instantiate Ball float 2)
-  (instantiate collide (Ball float 2))
-  (def-ptr-macro2 collide intern (Ball float 2))
-  (instantiate UniquePtr (Ball float 2))
-  (instantiate whatever (Ball float 2))
+  (def implement-default (macro intern (types nums)
+    (qq mfor T (uq types)
+      (mfor N (uq nums)
+        (def dot (fn intern T ((x (Array T N)) (y (Array T N)))
+          (+ (* (@$ x 0) (@$ y 0)) (* (@$ x 1) (@$ y 1)))))
 
-  (implement Type (p (Ball float 2)))
-  (instantiate Connection (p (Ball float 2)))
-  
-  (instantiate Vector (Connection (p (Ball float 2))))
+        (instantiate Ball T N)
+        (instantiate collide (Ball T N))
+        (def-ptr-macro2 collide intern (Ball T N))
+        (instantiate UniquePtr (Ball T N))
+        (def = (fn intern bool ((p0 (ref (const (UniquePtr (Ball T N)))))
+                                (p1 (ref (const (UniquePtr (Ball T N))))))
+          (p= p0 p1)))
+        (def != (fn intern bool ((p0 (ref (const (UniquePtr (Ball T N)))))
+                                 (p1 (ref (const (UniquePtr (Ball T N))))))
+          (not (p= p0 p1))))
+        (implement EqualityComparable (UniquePtr (Ball T N)))
+        (instantiate swap (UniquePtr (Ball T N)))
+        (implement Swappable (UniquePtr (Ball T N)))
+        (instantiate Vector (UniquePtr (Ball T N)))
 
+        (implement Type (p (Ball T N)))
+        (instantiate Connection (p (Ball T N)))
+        
+        (instantiate Vector (Connection (p (Ball T N))))
+        
+        (def Game (struct intern
+          ((world (Vector (UniquePtr (Ball T N))))
+           (player (p (Ball T N)))
+           (planet (p (Ball T N)))
+ 
+           (wheel1 (p (Ball T N)))
+           (wheel2 (p (Ball T N)))
+
+           (connections (Vector (Connection (p (Ball T N))))))))))))
+
+  (implement-default (float) (2))
+  (def game (var intern Game))
 
 ))
-
-
-
-#|
-(using-namespace std.macros
-;;(macro-print ok-ptr-macro)
-
-;;(def-ptr-macro2 + intern (Array float 2))
-;;(macro-print ok-ptr-macro2)
-
-)
-|#
-
-
-(def world (var intern (Vector (UniquePtr (Ball float 2)))))
-
-(def player (var intern (p (Ball float 2))))
-(def planet (var intern (p (Ball float 2))))
-
-(def wheel1 (var intern (p (Ball float 2))))
-(def wheel2 (var intern (p (Ball float 2))))
-
-(def connections (var intern (Vector (Connection (p (Ball float 2))))))
-
-
 
 (def quad (var intern (array-of 4 (array-of 2 float))
   (array (array -1.0 -1.0)
@@ -233,7 +219,7 @@
                    (array 1.0 0.0 0.0))))
          (rad 0.05)))
       (init up-ball ball)
-      (push-back world (move up-ball))))
+      (push-back (@: game world) (move up-ball))))
     (for (i \ 0) (< i 1) (incv i)
       (let ((ball (p (Ball float 2)) (malloc' 1 (Ball float 2)))
             (up-ball (UniquePtr (Ball float 2))))
@@ -249,8 +235,8 @@
          (mass 51200.0)
          (rad 16.0)))
       (init up-ball ball)
-      (setv planet ball)
-      (push-back world (move up-ball)))))
+      (setf (: game planet) ball)
+      (push-back (@: game world) (move up-ball)))))
 ))
 
 (def right-connection (var intern (p (Connection (p (Ball float 2))))))
@@ -306,14 +292,14 @@
     (init up-ball2 ball2)
     (init up-ball3 ball3)
     (init up-ball4 ball4)
-    (setv player ball1)
-    (setv wheel1 ball2)
-    (setv wheel2 ball3)
-    (setv planet ball4)
-    (push-back world (move up-ball1))
-    (push-back world (move up-ball2))
-    (push-back world (move up-ball3))
-    (push-back world (move up-ball4))
+    (setf (: game player) ball1)
+    (setf (: game wheel1) ball2)
+    (setf (: game wheel2) ball3)
+    (setf (: game planet) ball4)
+    (push-back (@: game world) (move up-ball1))
+    (push-back (@: game world) (move up-ball2))
+    (push-back (@: game world) (move up-ball3))
+    (push-back (@: game world) (move up-ball4))
     (let ((conn1 (Connection (p (Ball float 2)))
                  ((object0 ball1)
                   (object1 ball2)
@@ -334,12 +320,12 @@
                   (object1 ball4)
                   (length 0.25)
                   (strength 0.125))))
-        (push-back connections conn1)
-        (push-back connections conn2)
-        (push-back connections conn3)
-        (push-back connections conn4))
-  (setv right-connection ($ connections 0))
-  (setv left-connection ($ connections 1))
+        (push-back (@: game connections) conn1)
+        (push-back (@: game connections) conn2)
+        (push-back (@: game connections) conn3)
+        (push-back (@: game connections) conn4))
+  (setv right-connection ($ (@: game connections) 0))
+  (setv left-connection ($ (@: game connections) 1))
 )))
 
 (def init-snake (fn intern void (void)
@@ -359,19 +345,19 @@
          (rad (sqrt (*' 0.001 (+ (min i (- 15 i)) 1))))))
       (init up-ball ball)
       (when (null last)
-        (setv player ball))
+        (setf (: game player) ball))
       (when (not (null last))
         (let ((conn (Connection (p (Ball float 2)))
                     ((object0 last)
                      (object1 ball)
                      (length 0.25)
                      (strength 0.25))))
-          (push-back connections conn)))
+          (push-back (@: game connections) conn)))
       (setv last (get up-ball))
-      (push-back world (move up-ball))
+      (push-back (@: game world) (move up-ball))
   )))
   
-  ;(setv player (get (@$ world 7)))
+  ;(setf (: game player) (get (@$ (@: game world) 7)))
 ))
 
 (using-namespace gl
@@ -433,7 +419,7 @@
 
 (def blombo-controls (fn intern void (void)
   (using-namespace std
-    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
           (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
           (dis \ (sqrt dis2)))
     (setv rotvec (@: (/ disr dis) elements))))
@@ -445,7 +431,7 @@
 
 (def wheel-controls (fn intern void (void)
   (using-namespace std
-    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
           (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
           (dis \ (sqrt dis2)))
     (setv rotvec (@: (/ disr dis) elements))))
@@ -454,18 +440,18 @@
         (alen \ (* st blen)))
     (incf (:@ left-connection length) alen)
     (incf (:@ right-connection length) alen))
-  (mfor wheel (wheel1 wheel2)
+  (mfor wheel ((@: game wheel1) (@: game wheel2))
     (incf (:@ wheel tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
                  (if (is-pressed (@$ "d" 0)) -0.0025 0.0))))
   (using-namespace std
-    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
           (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
           (dis \ (sqrt dis2)))
     (setv rotvec (@: (/ disr dis) elements))))))
 
 (def up-controls (fn intern void (void)
   (using-namespace std
-    (let ((disr \ (- (@:@ player pos) (@:@ planet pos)))
+    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
           (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
           (dis \ (sqrt dis2)))
     (setv rotvec (@: (/ disr dis) elements))))
@@ -479,11 +465,11 @@
     ((elements (array
       (@$ up 1)
       (- 0.0 (@$ up 0)))))))
-  (incf (:@ player frc) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
+  (incf (:@ (@: game player) frc) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
 
 (def rot-controls (fn intern void (void)
-  (let ((rot \ (:@ player rot)))
-    (incf (:@ player tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
+  (let ((rot \ (:@ (@: game player) rot)))
+    (incf (:@ (@: game player) tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
                  (if (is-pressed (@$ "d" 0)) -0.0025 0.0)))
     (using-namespace std
       (setv rotvec (array (cos (@ rot)) (sin (@ rot))))
@@ -492,22 +478,22 @@
             (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
                       (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
             (f \ (* arr (* st dir))))
-        (incf (:@ player frc) f))))))
+        (incf (:@ (@: game player) frc) f))))))
 
 (def controls (var intern (p (fn void (void))) (# wheel-controls)))
 
 (def timer (fn intern void ((a int))
   (controls)
 
-  (in a world
+  (in a (@: game world)
     (let ((ball \ (get (@ a))))
       (act (@ ball))
       ))
-  (in de connections
+  (in de (@: game connections)
     (act (@ de)))
-  (for ((b \ (begin world)) (e \ (end world))) (< b e) (setv b (successor b))
+  (for ((b \ (begin (@: game world))) (e \ (end (@: game world)))) (< b e) (setv b (successor b))
     (let ((p0 \ (get (@ (source b)))))
-      (for ((b2 \ (successor b)) (e \ (end world))) (< b2 e) (setv b2 (successor b2))
+      (for ((b2 \ (successor b)) (e \ (end (@: game world)))) (< b2 e) (setv b2 (successor b2))
           (let ((p1 \ (get (@ (source b2)))))
             (collide p0 p1) ))))
     (glutPostRedisplay)
@@ -519,8 +505,8 @@
   
 
 
-  (init world 512)
-  (init connections 512)
+  (init (@: game world) 512)
+  (init (@: game connections) 512)
 
 
   (init (# argc) argv)
@@ -545,14 +531,14 @@
   (display-func (void)
     (using-namespace gl
     (using-namespace std
-      (uniform (get-uniform-location program "cam") (: (@:@ player pos) elements))
+      (uniform (get-uniform-location program "cam") (: (@:@ (@: game player) pos) elements))
       (clear color)
       (enable-client-state vertex-array)
       (use-program program)
       (incf (# x) 0.01)
       (uniform (get-uniform-location program "lpos") (* 32.0 (sin x)) (* 32.0 (cos x)))
       (uniform (get-uniform-location program "rotvec") (# rotvec))
-      (in a world
+      (in a (@: game world)
         (uniform (get-uniform-location program "pos") (: (@:@ (get (@ a)) pos) elements))
         (uniform (get-uniform-location program "rot") (cos (@:@ (get (@ a)) rot)) 
                                                       (sin (@:@ (get (@ a)) rot)))

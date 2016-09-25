@@ -68,8 +68,10 @@
   (using-namespace std.macros
   (def def-glut-func (macro intern (name glut-name)
     (qq def (uq name)
-      (macro extern (...)
-        (qq (uq glut-name) (fn void (uq (uql (get-varargs-list (arg-count mc))))))))))
+      (macro extern (rest)
+      (using-namespace std.macros
+        (def list (var auto \ (get-varargs-list mc (arg-count mc) rest)))
+            (qq (uq glut-name) (fn void (uq (uql list)))))))))
   (def-glut-func idle-func glutIdleFunc)
 
   (def-glut-func display-func glutDisplayFunc)
