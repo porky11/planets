@@ -25,10 +25,28 @@ Useful for debug reasons, when you know some error appears before this macro is 
 (def ignore (macro extern (rest)
   (qq no-op)))
 
-
+(def pow (macro extern (x (n int))
+    (def n0 (var auto int))
+    (if (eval-expression mc (q int) n (cast (# n0) (p void)))
+        (do (if (= n0 1) x
+                (let ((n1 \ (- n0 1))
+                      (nn \ (mnfv mc n1)))
+                  (if (is-lvalue mc x)
+                    (qq * (uq x) (pow (uq x) (uq nn)))
+                    (let ((tmp \ (make-gensym-var-node mc)))
+                      (qq let (((uq tmp) \ (uq x)))
+                        (* (uq tmp) (pow (uq tmp) (uq nn)))))))))
+        (do (report-error mc n "unable to evaluate\n") (qq no-op)))))
 
 (def is-zero (fn extern bool ((a float))
   (= a 0.0)))
+
+(def is-zero (fn extern bool ((a double))
+  (= a (cast 0.0 double))))
+
+(def is-zero (fn extern bool ((a long-double))
+  (= a (cast 0.0 long-double))))
+
 
 (def /0 (macro extern (x y)
   (qq if (is-zero (uq y))
@@ -43,16 +61,20 @@ Useful for debug reasons, when you know some error appears before this macro is 
   (def list (var auto \ (get-varargs-list mc (- (arg-count mc) 1) rest)))
   (qq if (uq con) false (do (uql list)))))
 
-(def in (macro extern (name value rest)
+(ignore def in (macro extern (name value rest)
   (let ((list \ (get-varargs-list mc (- (arg-count mc) 2) rest))
         (en \ (make-gensym-var-node mc))
-        (bn \ (make-gensym-var-node mc))
-        (val \ (make-gensym-var-node mc)))
-    (qq for ( #| ((uq val) \ (move (uq value))) |# ((uq bn) \ (begin (uq value))) ((uq en) \ (end (uq value))))
-            (< (uq bn) (uq en))
-            (setv (uq bn) (successor (uq bn)))
-      (let (((uq name) \ (source (uq bn))))
-        (uql list))))))
+        (bn \ (make-gensym-var-node mc)))
+    (if (is-lvalue mc value)
+      (qq for (((uq bn) \ (begin (uq value))) ((uq en) \ (end (uq value))))
+              (< (uq bn) (uq en))
+              (setv (uq bn) (successor (uq bn)))
+        (let (((uq name) \ (source (uq bn))))
+          (uql list)))
+      (let ((val \ (make-gensym-var-node mc)))
+        (qq let (((uq val) \ (uq value)))
+          (in (uq name) (uq val) (uql list))))))))
+
 )
 
 (using-namespace std.macros
@@ -169,12 +191,12 @@ Useful for debug reasons, when you know some error appears before this macro is 
       (ignore when (= A B)
         (report-error mc "For + both types should be the same")
         (return (qq no-op)))
-      (qq do
-        (instantiate + (uq A))
-        (as-macro
-          (if (exists-fn (uq A) + (uq A) (uq A))
-            (qq + (uq a) (uq b))
-            (qq no-op)))))))
+      (qq using-namespace std.concepts
+        (when (exists-concept +)
+          (instantiate + (uq A)))
+        (if (exists-fn (uq A) + (uq A) (uq A))
+          (as-macro (qq + (uq a) (uq b)))
+          (as-macro (qq no-op)))))))
 )
 )
 

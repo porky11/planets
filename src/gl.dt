@@ -41,7 +41,7 @@
        (stencil 0x400)
        (color 0x4000)
        (coverage 0x8000)))
-  
+
   (def-enum capability extern uint
     ((blend 0xBE2)))
 

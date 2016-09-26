@@ -38,12 +38,6 @@
 (using-namespace std.macros
 (using-namespace std.concepts
 
-  (implement BasicMath float)
-
-  (instantiate Array float 2)
-  (instantiate basic-math (Array float 2))
-
-  (instantiate Array float 3)
   
 
   (def-type-macro2 Ball)
@@ -59,6 +53,8 @@
              (frc (uq A))
              (rot (uq V))
              (tor (uq V))
+             (rn (uq T))
+             (hn (uq T))
              (color (Array (uq T) 3))
              (mass (uq T))
              (rad (uq T)))))
@@ -69,9 +65,9 @@
         (def act (fn intern bool ((ball (ref (uq B))))
           (setf (:@ ball vel) (/ (@:@ ball frc) (@:@ ball mass)))
           (incf (:@ ball pos) (@:@ ball vel))
-          (incf (:@ ball rot) (/ (@:@ ball tor) (* (* (pi) 1.0) (* (@:@ ball mass) (@:@ ball rad)))))
-          (mulf (:@ ball frc) 0.95)
-          (mulf (:@ ball tor) 0.95)))
+          (incf (:@ ball rot) (/ (@:@ ball tor) (* (cast (pi) (uq T)) (@:@ ball mass))))
+          (mulf (:@ ball frc) (cast 0.95 (uq T)))
+          (mulf (:@ ball tor) (cast 0.95 (uq T)))))
         (implement Struct (Ball (uq T) (uq N)))
         (implement EqualityComparable (Ball (uq T) (uq N))))))
   
@@ -84,8 +80,8 @@
          (let ((m0 \ (@:@ p0 mass))
                (m1 \ (@:@ p1 mass))
                (disr \ (- (@:@ p0 pos) (@:@ p1 pos)))
-               (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0))))
-           (when (< 0.0 dis2)
+               (dis2 \ (+ (pow (@$ disr 0) 2) (pow (@$ disr 1) 2))))
+           (when (>' dis2 0.0)
              (let ((dis \ (sqrt dis2))
                    (r0 \ (@:@ p0 rad))
                    (r1 \ (@:@ p1 rad))
@@ -96,20 +92,20 @@
                        (v1 \ (@:@ p1 vel))
                        (dv \ (- v0 v1))
                        (st \ 0.5)
-                       (rn \ 0.05)
+                       (rn \ 0.5)
                        (dir \ (/ disr dis))
                        (s (Array float 2) ((elements (array (* (@$ dir 1) -1.0)
                                                             (* (@$ dir 0) 1.0)))))
-                       (sr \ (do (+ (/ (@:@ p0 tor) m0)
-                                    (/ (@:@ p1 tor) m1)) ))
+                       (sr \ (do (+ (/ (* (@:@ p0 tor) r0) m0)
+                                    (/ (* (@:@ p1 tor) r1) m1)) 0.0))
                        (vr \ (do (dot (- v0 v1) s) ))
                        (mfac \ (/ (* m0 m1) (+ m0 m1)))
                        (rr \ (* (- sr vr) (* rn mfac)))
                        (rv \ (* s rr))
                        (col \ (* dir (* (* st mfac) (- dis rs)))))
-                   (setv acc (+ col (* rv -1.0)))
+                   (setv acc (+ col (/ rv dis)))
                    (mfor p (p0 p1)
-                     (decf (:@ p tor) rr))))
+                     (decf (:@ p tor) (/ rr (* dis 1.0))))))
                (incf (:@ p1 frc) acc)
                (decf (:@ p0 frc) acc))))))))
 
@@ -149,10 +145,19 @@
         (struct intern ((vector (Vector (uq T))))))))
 
   (def implement-default (macro intern (types nums)
-    (qq mfor T (uq types)
-      (mfor N (uq nums)
+    (qq using-namespace std.concepts
+      (mfor T (uq types)
+        (mfor N (uq nums)
+
+        (implement BasicMath T)
+
+        (instantiate Array T N)
+        (instantiate basic-math (Array T N))
+
         (def dot (fn intern T ((x (Array T N)) (y (Array T N)))
           (+ (* (@$ x 0) (@$ y 0)) (* (@$ x 1) (@$ y 1)))))
+
+        (instantiate Array T 3)
 
         (instantiate Ball T N)
         (instantiate collide (Ball T N))
@@ -182,10 +187,78 @@
            (wheel1 (p (Ball T N)))
            (wheel2 (p (Ball T N)))
 
-           (connections (Vector (Connection (p (Ball T N))))))))))))
+           (connections (Vector (Connection (p (Ball T N))))))))
+
+        (def game (var intern Game))
+        (def rotvec (var intern (array-of N T) (array 1.0 0.0)))
+        (def right-connection (var intern (p (Connection (p (Ball T N))))))
+        (def left-connection (var intern (p (Connection (p (Ball T N))))))
+
+        (def blombo-controls (fn intern void (void)
+          (using-namespace std
+            (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
+                  (dis2 \ (+ (pow (@$ disr 0) 2) (pow (@$ disr 1) 2)))
+                  (dis \ (sqrt dis2)))
+            (setv rotvec (@: (/ disr dis) elements))))
+          (let ((blen \ (- (if (is-pressed (@$ "a" 0)) 1.0 0.0) (if (is-pressed (@$ "d" 0)) 1.0 0.0)))
+                (st \ 0.075)
+                (alen \ (* st blen)))
+            (setf (:@ left-connection length) (- 0.5 alen))
+            (setf (:@ right-connection length) (+ 0.5 alen)))))
+
+        (def wheel-controls (fn intern void (void)
+          (using-namespace std
+            (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
+                  (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
+                  (dis \ (sqrt dis2)))
+            (setv rotvec (@: (/ disr dis) elements))))
+          (let ((blen \ (- (if (is-pressed (@$ "w" 0)) 1.0 0.0) (if (is-pressed (@$ "s" 0)) 1.0 0.0)))
+                (st \ 0.005)
+                (alen \ (* st blen)))
+            (incf (:@ left-connection length) alen)
+            (incf (:@ right-connection length) alen))
+          (mfor wheel ((@: game wheel1) (@: game wheel2))
+            (incf (:@ wheel tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
+                         (if (is-pressed (@$ "d" 0)) -0.0025 0.0))))
+          (using-namespace std
+            (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
+                  (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
+                  (dis \ (sqrt dis2)))
+            (setv rotvec (@: (/ disr dis) elements))))))
+
+        (def up-controls (fn intern void (void)
+          (using-namespace std
+            (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
+                  (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
+                  (dis \ (sqrt dis2)))
+            (setv rotvec (@: (/ disr dis) elements))))
+          (def up (var auto (Array float 2)
+            ((elements (array
+               (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
+                  (if (is-pressed (@$ "d" 0)) 0.01 0.0))
+               (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
+                  (if (is-pressed (@$ "s" 0)) -0.01 0.0)))))))
+          (def side (var auto (Array float 2)
+            ((elements (array
+              (@$ up 1)
+              (- 0.0 (@$ up 0)))))))
+          (incf (:@ (@: game player) frc) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
+
+        (def rot-controls (fn intern void (void)
+          (let ((rot \ (:@ (@: game player) rot)))
+            (incf (:@ (@: game player) tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
+                         (if (is-pressed (@$ "d" 0)) -0.0025 0.0)))
+            (using-namespace std
+              (setv rotvec (array (cos (@ rot)) (sin (@ rot))))
+              (let ((arr (Array float 2) ((elements rotvec)))
+                    (st \ 0.001)
+                    (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
+                              (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
+                    (f \ (* arr (* st dir))))
+                (incf (:@ (@: game player) frc) f)))))))))))
+
 
   (implement-default (float) (2))
-  (def game (var intern Game))
 
 ))
 
@@ -239,8 +312,6 @@
       (push-back (@: game world) (move up-ball)))))
 ))
 
-(def right-connection (var intern (p (Connection (p (Ball float 2))))))
-(def left-connection (var intern (p (Connection (p (Ball float 2))))))
 
 
 (def init-blombo (fn intern void (void)
@@ -414,71 +485,8 @@
 
 (def x (var intern float 0.0))
 
-(def rotvec (var intern (array-of 2 float) (array 1.0 0.0)))
 
 
-(def blombo-controls (fn intern void (void)
-  (using-namespace std
-    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
-          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
-          (dis \ (sqrt dis2)))
-    (setv rotvec (@: (/ disr dis) elements))))
-  (let ((blen \ (- (if (is-pressed (@$ "a" 0)) 1.0 0.0) (if (is-pressed (@$ "d" 0)) 1.0 0.0)))
-        (st \ 0.075)
-        (alen \ (* st blen)))
-    (setf (:@ left-connection length) (- 0.5 alen))
-    (setf (:@ right-connection length) (+ 0.5 alen)))))
-
-(def wheel-controls (fn intern void (void)
-  (using-namespace std
-    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
-          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
-          (dis \ (sqrt dis2)))
-    (setv rotvec (@: (/ disr dis) elements))))
-  (let ((blen \ (- (if (is-pressed (@$ "w" 0)) 1.0 0.0) (if (is-pressed (@$ "s" 0)) 1.0 0.0)))
-        (st \ 0.005)
-        (alen \ (* st blen)))
-    (incf (:@ left-connection length) alen)
-    (incf (:@ right-connection length) alen))
-  (mfor wheel ((@: game wheel1) (@: game wheel2))
-    (incf (:@ wheel tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
-                 (if (is-pressed (@$ "d" 0)) -0.0025 0.0))))
-  (using-namespace std
-    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
-          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
-          (dis \ (sqrt dis2)))
-    (setv rotvec (@: (/ disr dis) elements))))))
-
-(def up-controls (fn intern void (void)
-  (using-namespace std
-    (let ((disr \ (- (@:@ (@: game player) pos) (@:@ (@: game planet) pos)))
-          (dis2 \ (+ (pow (@$ disr 0) 2.0) (pow (@$ disr 1) 2.0)))
-          (dis \ (sqrt dis2)))
-    (setv rotvec (@: (/ disr dis) elements))))
-  (def up (var auto (Array float 2)
-    ((elements (array
-       (+ (if (is-pressed (@$ "a" 0)) -0.01 0.0)
-          (if (is-pressed (@$ "d" 0)) 0.01 0.0))
-       (+ (if (is-pressed (@$ "w" 0)) 0.01 0.0)
-          (if (is-pressed (@$ "s" 0)) -0.01 0.0)))))))
-  (def side (var auto (Array float 2)
-    ((elements (array
-      (@$ up 1)
-      (- 0.0 (@$ up 0)))))))
-  (incf (:@ (@: game player) frc) (+ (* up (@$ rotvec 1)) (* side (@$ rotvec 0))))))
-
-(def rot-controls (fn intern void (void)
-  (let ((rot \ (:@ (@: game player) rot)))
-    (incf (:@ (@: game player) tor) (+ (if (is-pressed (@$ "a" 0)) 0.0025 0.0)
-                 (if (is-pressed (@$ "d" 0)) -0.0025 0.0)))
-    (using-namespace std
-      (setv rotvec (array (cos (@ rot)) (sin (@ rot))))
-      (let ((arr (Array float 2) ((elements rotvec)))
-            (st \ 0.001)
-            (dir \ (+ (if (is-pressed (@$ "w" 0)) 1.0 0.0)
-                      (if (is-pressed (@$ "s" 0)) -1.0 0.0)))
-            (f \ (* arr (* st dir))))
-        (incf (:@ (@: game player) frc) f))))))
 
 (def controls (var intern (p (fn void (void))) (# wheel-controls)))
 
