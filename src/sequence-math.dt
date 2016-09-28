@@ -107,27 +107,4 @@
         (return))))))
 
 ))
-#|
-(def main (fn extern-c int (void)
-  (def x (var auto (Array float 2)))
-    (setf ($ x 0) 0.1) (setf ($ x 1) 0.2) (def y (var auto (Array float 2))) (setf ($ y 0) 0.3) (setf ($ y 1) 0.4) (setv x (+ x y)) (printf "%f %f\n" (@$ x 0) (@$ x 1)) 0))
 
-(using-namespace std.macros
-(using-namespace std.concepts
-  (def-concept-macro + extern ((T Type))
-    (using-namespace std.macros
-    (qq def + (macro extern ((a (uq T)) (b (uq T)))
-      (let ((tmp \ (make-gensym-var-node mc)))
-      (qq do
-        ;;(using-namespace std)
-        ;;(assert (= (size (uq (uq a))) (size (uq (uq b)))))
-        (def (uq (uq tmp)) (var auto (uq T)))
-        (for (i \ 0) (< i (cast (size (uq (uq a))) int)) (incv i)
-          (setf ($ (uq (uq tmp)) i) (+ (@$ (uq (uq a)) i) (@$ (uq (uq  b)) i))))
-        (move (uq (uq tmp)))
-        ))))
-    ))
-  (instantiate Array float 2)
-  (instantiate + (Array float 2))
-))
-|#
