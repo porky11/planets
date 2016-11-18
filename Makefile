@@ -1,32 +1,21 @@
 .RECIPEPREFIX+= 
 
+FLAGS=-M../dale-extensions -M../dale-gl
+
+
+
 all: game
 
-game: libglut.dtm libgl.dtm libspatial.dtm libutil.dtm libsequence-math.dtm src/game.dt
-  dalec src/game.dt -lGL -lglut -o game
+game: libspatial.dtm src/game.dt
+  dalec src/game.dt -lGL -lglut -o game $(FLAGS)
 
-libgl.dtm: src/gl.dt libutil.dtm
-  dalec -c src/gl.dt
-
-libglut.dtm: src/glut.dt
-  dalec -c src/glut.dt
-
-libspatial.dtm: src/spatial.dt libutil.dtm
-  dalec -c src/spatial.dt
-
-libutil.dtm: src/util.dt
-  dalec -c src/util.dt
-
-libsequence-math.dtm: src/sequence-math.dt libmath-concepts.dtm
-  dalec -c src/sequence-math.dt
-
-libmath-concepts.dtm: src/math-concepts.dt
-  dalec -c src/math-concepts.dt
+libspatial.dtm: src/spatial.dt
+  dalec -c src/spatial.dt $(FLAGS)
 
 src/%.dt:
   true
 
 .PHONY: all clean
 clean:
-  rm -f game && rm *.so && rm *.bc && rm *.dtm
+  rm -f game && rm *.so && rm *.bc && rm *.dtm && rm src/*.o
 
